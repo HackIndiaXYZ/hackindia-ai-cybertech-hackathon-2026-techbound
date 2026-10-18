@@ -1,0 +1,120 @@
+# Local/preview stack for the ISL Real-Time Communication Platform.
+# This compose file is the "real" (non-fallback) path: the API uses Postgres + Redis.
+# Docker is not required for Phase 1 local dev (the API falls back to in-memory
+# drivers), but this defines the intended production-shaped topology (§11.7).
+name: isl-communication-platform
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: isl
+      POSTGRES_PASSWORD: isl
+      POSTGRES_DB: isl
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U isl -d isl']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes']
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      NODE_ENV: production
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DB_DRIVER: postgres
+      REDIS_DRIVER: redis
+      DATABASE_URL: postgres://isl:isl@postgres:5432/isl
+      REDIS_URL: redis://redis:6379
+      CORS_ALLOWED_ORIGINS: http://localhost:8080
+      # REQUIRED: override with a strong secret before deploying. The API will
+      # refuse to start in production if this stays at the insecure default.
+      # NOTE the exact key name: config reads API_AUTH_JWT_SECRET (not JWT_SECRET).
+      API_AUTH_JWT_SECRET: change-me-in-production-please-use-a-long-random-value
+      API_AUTH_REFRESH_TTL_SECONDS: 604800
+      API_AUTH_RESET_TTL_SECONDS: 1800
+      # 5.2 password-reset mail. `console` never opens a socket; wire a real
+      # transport (behind an ADR) before exposing reset to beta users.
+      MAIL_TRANSPORT: console
+      MAIL_FROM: no-reply@missingwhisper.local
+      PUBLIC_WEB_BASE_URL: http://localhost:8080
+      ISL_ENGINE_BASE_URL: http://isl-engine:5001
+      # 5.3 Turnstile: off by default. To enable, set true + a real secret AND
+      # pass the matching public site key to the web service below.
+      TURNSTILE_ENABLED: 'false'
+      TURNSTILE_SECRET_KEY: ''
+    ports:
+      - '4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      isl-engine:
+        condition: service_started
+
+  isl-engine:
+    build:
+      context: apps/isl-engine
+      dockerfile: Dockerfile
+    environment:
+      PORT: 5001
+      PYTHONUNBUFFERED: '1'
+    ports:
+      - '5001:5001'
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:5001/health']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # One-shot migration job (plan §11.7 "migrate on release"). Uses the compiled
+  # runtime entry so it needs no dev dependencies, and exits when done.
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    command: ['node', 'apps/api/dist/infra/db/migrate.js']
+    environment:
+      NODE_ENV: production
+      DB_DRIVER: postgres
+      DATABASE_URL: postgres://isl:isl@postgres:5432/isl
+    restart: 'no'
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+
+volumes:
+  postgres-data:
+  redis-data:
