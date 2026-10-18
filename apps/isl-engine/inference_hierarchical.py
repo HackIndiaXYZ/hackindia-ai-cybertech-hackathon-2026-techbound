@@ -46,31 +46,51 @@ class HierarchicalClassifier:
         print(f"   ✓ Gating model loaded (3 groups)")
         
 
-        print(f"\n2. Loading Specialist Models...")
-        self.specialist_models = []
+        print(f"\n2. Loading Specialist Model Metadata...")
+        self.specialist_paths = specialist_paths
+        self.specialist_models = [None] * len(specialist_paths)
         self.specialist_class_names = []
         
         for i, path in enumerate(specialist_paths):
             checkpoint = torch.load(path, map_location=self.device, weights_only=False)
-            config = checkpoint['config']
             class_names = checkpoint['class_names']
-            
-            if hasattr(config, 'DEVICE'):
-                config.DEVICE = self.device
-
-            model = create_model(config)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            model.to(self.device) 
-            model.eval()
-            
-            self.specialist_models.append(model)
             self.specialist_class_names.append(class_names)
-            
-            print(f"   ✓ Group {i} model loaded ({len(class_names)} words): {class_names}")
+            del checkpoint
+            import gc
+            gc.collect()
+            print(f"   ✓ Group {i} metadata loaded ({len(class_names)} words)")
         
         print(f"\n{'='*70}")
-        print(f"✓ Hierarchical Classifier Ready")
+        print(f"✓ Hierarchical Classifier Ready (Specialists load on-demand)")
         print(f"{'='*70}\n")
+
+    def get_specialist_model(self, group_idx):
+        """Loads only the needed specialist model into memory, unloading others to stay within free-tier RAM."""
+        if self.specialist_models[group_idx] is None:
+            for i in range(len(self.specialist_models)):
+                if self.specialist_models[i] is not None:
+                    del self.specialist_models[i]
+                    self.specialist_models[i] = None
+            import gc
+            gc.collect()
+
+            print(f"Loading Specialist Model for Group {group_idx} on {self.device}...")
+            path = self.specialist_paths[group_idx]
+            checkpoint = torch.load(path, map_location=self.device, weights_only=False)
+            config = checkpoint['config']
+            if hasattr(config, 'DEVICE'):
+                config.DEVICE = self.device
+            from models.two_stream_transformer import create_model
+            model = create_model(config)
+            model.load_state_dict(checkpoint['model_state_dict'])
+            model.to(self.device)
+            model.eval()
+            self.specialist_models[group_idx] = model
+            del checkpoint
+            gc.collect()
+            print(f"✓ Specialist Model for Group {group_idx} loaded!")
+
+        return self.specialist_models[group_idx]
     
     @torch.no_grad()
     def predict(self, frames, landmarks, return_probabilities=False):
@@ -106,7 +126,7 @@ class HierarchicalClassifier:
         print(f"  Confidence: {group_confidence:.2%}")
         print(f"  All group probabilities: {gating_probs[0].cpu().numpy()}")
         
-        specialist_model = self.specialist_models[group_predicted]
+        specialist_model = self.get_specialist_model(group_predicted)
         specialist_logits = specialist_model(frames, landmarks)  # (1, num_words)
         specialist_probs = torch.softmax(specialist_logits, dim=1)
         word_idx = specialist_probs.argmax(dim=1).item()
@@ -342,6 +362,22 @@ class HierarchicalInference:
 
         frames, landmarks = self.preprocess_video(video_path)
 
+        if len(frames) == 0:
+            print("⚠️ No frames extracted from video; returning empty prediction.", file=sys.stdout)
+            return {
+                'video_path': str(video_path),
+                'group_predicted': 0,
+                'gating_confidence': 0.0,
+                'top_prediction': {
+                    'class': 'None',
+                    'group': 0,
+                    'overall_confidence': 0.0,
+                    'specialist_confidence': 0.0
+                },
+                'all_predictions': [],
+                'gating_probs': [0.0, 0.0, 0.0]
+            }
+
         frames_tensor, landmarks_tensor = self.prepare_model_input(frames, landmarks)
         
         print(f"\nRunning hierarchical inference...")
@@ -350,6 +386,17 @@ class HierarchicalInference:
             landmarks_tensor,
             return_probabilities=True
         )
+
+        def safe_float(v):
+            try:
+                val = float(v)
+                if np.isnan(val) or np.isinf(val):
+                    return 0.0
+                return val
+            except Exception:
+                return 0.0
+
+        overall_confidence = safe_float(overall_confidence)
         
         specialist_probs = torch.from_numpy(probs['specialist_probs'])
         top_probs, top_indices = torch.topk(specialist_probs, k=min(top_k, len(specialist_probs)))
@@ -358,11 +405,12 @@ class HierarchicalInference:
         
         all_predictions = []
         for idx, prob in zip(top_indices.numpy(), top_probs.numpy()):
+            p_val = safe_float(prob)
             all_predictions.append({
                 'class': specialist_class_names[idx],
                 'class_id': int(idx),
-                'probability': float(prob),
-                'confidence_percent': float(prob * 100)
+                'probability': p_val,
+                'confidence_percent': safe_float(p_val * 100)
             })
 
         print(f"\n{'='*70}")
@@ -378,18 +426,21 @@ class HierarchicalInference:
         
         print(f"{'='*70}\n")
         
+        gating_probs_raw = probs.get('gating_probs')
+        gating_probs_clean = [safe_float(gp) for gp in gating_probs_raw] if gating_probs_raw is not None else [0.0, 0.0, 0.0]
+        
         return {
             'video_path': str(video_path),
-            'group_predicted': group_predicted,
-            'gating_confidence': float(probs['gating_probs'][group_predicted]),
+            'group_predicted': int(group_predicted),
+            'gating_confidence': safe_float(probs['gating_probs'][group_predicted]) if 'gating_probs' in probs else 0.0,
             'top_prediction': {
                 'class': predicted_word,
-                'group': group_predicted,
+                'group': int(group_predicted),
                 'overall_confidence': overall_confidence,
-                'specialist_confidence': float(probs['specialist_probs'].max())
+                'specialist_confidence': safe_float(probs['specialist_probs'].max()) if 'specialist_probs' in probs else 0.0
             },
             'all_predictions': all_predictions,
-            'gating_probs': probs['gating_probs'].tolist()
+            'gating_probs': gating_probs_clean
         }
     
     def predict_batch(self, video_paths, top_k=5):

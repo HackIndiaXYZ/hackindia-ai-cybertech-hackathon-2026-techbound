@@ -1,4 +1,9 @@
 import sys, os, pathlib
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+os.environ["OMP_NUM_THREADS"] = "2"
+os.environ["MKL_NUM_THREADS"] = "2"
+
 if sys.platform == "win32":
     pathlib.PosixPath = pathlib.WindowsPath
     try:
@@ -50,43 +55,57 @@ script_dir = os.path.dirname(os.path.abspath(__file__))
 
 model1_path = os.path.join(script_dir, "isl_static_model.h5")
 model1 = None
-try:
-    print(f"Loading Model 1 (NN) from: {model1_path}...", file=sys.stdout)
-    model1 = keras.models.load_model(model1_path)
-    print("✅ Model 1 loaded!", file=sys.stdout)
-except Exception as e:
-    print(f"❌ Error loading Model 1: {e}", file=sys.stderr)
+
+def get_model1():
+    global model1
+    if model1 is None and os.path.exists(model1_path):
+        try:
+            print(f"Loading Model 1 (NN) from: {model1_path}...", file=sys.stdout)
+            model1 = keras.models.load_model(model1_path)
+            print("✅ Model 1 loaded!", file=sys.stdout)
+        except Exception as e:
+            print(f"❌ Error loading Model 1: {e}", file=sys.stderr)
+    return model1
 
 model2_path = os.path.join(script_dir, "isl_rf_model.pkl")
 model2 = None
 is_sklearn_model = False
 
-try:
-    if os.path.exists(model2_path):
-        print(f"Loading Model 2 (Verifier) from: {model2_path}...", file=sys.stdout)
-        if model2_path.endswith('.h5') or model2_path.endswith('.keras'):
-            model2 = keras.models.load_model(model2_path)
-            is_sklearn_model = False
-        else:
-            model2 = joblib.load(model2_path)
-            is_sklearn_model = True
-        print("✅ Model 2 loaded!", file=sys.stdout)
-    else:
-        print("ℹ️ No Model 2 found. Running in Single Model Mode.", file=sys.stdout)
-except Exception as e:
-    print(f"⚠️ Error loading Model 2: {e}", file=sys.stderr)
+def get_model2():
+    global model2, is_sklearn_model
+    if model2 is None and os.path.exists(model2_path):
+        try:
+            print(f"Loading Model 2 (Verifier) from: {model2_path}...", file=sys.stdout)
+            if model2_path.endswith('.h5') or model2_path.endswith('.keras'):
+                model2 = keras.models.load_model(model2_path)
+                is_sklearn_model = False
+            else:
+                model2 = joblib.load(model2_path)
+                is_sklearn_model = True
+            print("✅ Model 2 loaded!", file=sys.stdout)
+        except Exception as e:
+            print(f"⚠️ Error loading Model 2: {e}", file=sys.stderr)
+    return model2
 
 
 alphabet = ['1','2','3','4','5','6','7','8','9'] + list(string.ascii_uppercase)
 
 def pre_process_landmark_fix(landmarks_data):
-    """ Your existing preprocessing logic """
-    temp = copy.deepcopy(landmarks_data)
-    if not temp or len(temp) == 0: return [0.0] * 42
-    
-    for lm in temp:
-        lm['x'] = float(lm.get('x', 0.0))
-        lm['y'] = float(lm.get('y', 0.0))
+    """ Robust landmark preprocessing handling both dict {'x','y'} and list [x,y] formats """
+    if not landmarks_data or len(landmarks_data) == 0:
+        return [0.0] * 42
+
+    temp = []
+    for lm in landmarks_data:
+        if isinstance(lm, dict):
+            temp.append({'x': float(lm.get('x', 0.0)), 'y': float(lm.get('y', 0.0))})
+        elif isinstance(lm, (list, tuple)) and len(lm) >= 2:
+            temp.append({'x': float(lm[0]), 'y': float(lm[1])})
+        else:
+            temp.append({'x': 0.0, 'y': 0.0})
+
+    while len(temp) < 21:
+        temp.append({'x': 0.0, 'y': 0.0})
 
     base_x, base_y = temp[0]['x'], temp[0]['y']
     for lm in temp:
@@ -109,9 +128,10 @@ def pre_process_landmark_fix(landmarks_data):
 
 def get_prediction_model1(input_array):
     """ Returns (label, confidence_score) from Keras NN """
-    if model1 is None: return None, 0.0
+    m1 = get_model1()
+    if m1 is None: return None, 0.0
     
-    preds = model1.predict(input_array, verbose=0)
+    preds = m1.predict(input_array, verbose=0)
     probs = preds[0] if preds.ndim == 2 else preds
     
     best_idx = int(np.argmax(probs))
@@ -121,7 +141,8 @@ def get_prediction_model1(input_array):
 
 def get_prediction_model2(input_array):
     """ Returns (label, probability) from Second Model """
-    if model2 is None: return None, 0.0
+    m2 = get_model2()
+    if m2 is None: return None, 0.0
 
     if is_sklearn_model:
         try:
@@ -159,33 +180,39 @@ elif torch.backends.mps.is_available():
 else:
     device = 'cpu'
 
-print(f"Inference running on: {device}")
-dynamic_infer = HierarchicalInference(
-    gating_model_path=GATING_MODEL_PATH,
-    specialist_paths=SPECIALIST_PATHS,
-    device=device
-)
+dynamic_infer = None
 
-
-print(f"Inference running on: {device}")
-
+def get_dynamic_infer():
+    global dynamic_infer
+    if dynamic_infer is None and os.path.exists(GATING_MODEL_PATH):
+        try:
+            print(f"Loading Dynamic Infer on {device}...", file=sys.stdout)
+            dynamic_infer = HierarchicalInference(
+                gating_model_path=GATING_MODEL_PATH,
+                specialist_paths=SPECIALIST_PATHS,
+                device=device
+            )
+            print("✅ Dynamic Infer loaded!", file=sys.stdout)
+        except Exception as e:
+            print(f"⚠️ Error loading Dynamic Infer: {e}", file=sys.stderr)
+    return dynamic_infer
 
 @app.route("/health", methods=["GET"])
 def health_check():
     return jsonify({
         'status': 'healthy', 
-        'model1': model1 is not None,
-        'model2': model2 is not None,
-        'dynamic_infer': dynamic_infer is not None
+        'model1_loaded': model1 is not None,
+        'model2_loaded': model2 is not None,
+        'dynamic_infer_loaded': dynamic_infer is not None
     })
 
 def is_finger_extended(landmarks, finger_name):
     """
     Returns True if a finger is pointing up/out, False if curled.
-    Landmarks indices: 
-    Thumb=4, Index=8, Middle=12, Ring=16, Pinky=20
-    Knuckles: Thumb=2, Index=5, Middle=9, Ring=13, Pinky=17
+    Handles both dict {'x','y'} and list [x,y] landmarks and prevents IndexError.
     """
+    if not landmarks or len(landmarks) < 21:
+        return False
 
     indices = {
         'thumb': (4, 2), 
@@ -195,17 +222,22 @@ def is_finger_extended(landmarks, finger_name):
         'pinky': (20, 17)
     }
     tip_idx, joint_idx = indices[finger_name]
+    if len(landmarks) <= max(tip_idx, joint_idx):
+        return False
 
-    tip = landmarks[tip_idx]
-    wrist = landmarks[0]
+    def get_pt(p):
+        if isinstance(p, dict):
+            return float(p.get('x', 0.0)), float(p.get('y', 0.0))
+        elif isinstance(p, (list, tuple)) and len(p) >= 2:
+            return float(p[0]), float(p[1])
+        return 0.0, 0.0
 
-    def get_dist(p1, p2):
-        return ((p1['x'] - p2['x'])**2 + (p1['y'] - p2['y'])**2)**0.5
+    tip_x, tip_y = get_pt(landmarks[tip_idx])
+    wrist_x, wrist_y = get_pt(landmarks[0])
+    joint_x, joint_y = get_pt(landmarks[joint_idx])
 
-    dist_tip = get_dist(tip, wrist)
-
-    joint = landmarks[joint_idx]
-    dist_joint = get_dist(joint, wrist)
+    dist_tip = ((tip_x - wrist_x)**2 + (tip_y - wrist_y)**2)**0.5
+    dist_joint = ((joint_x - wrist_x)**2 + (joint_y - wrist_y)**2)**0.5
 
     return dist_tip > (dist_joint * 1.2) 
 
@@ -298,16 +330,15 @@ def predict_static():
             current_prediction = None
 
 
-        if current_prediction:
-            history_queue.append(current_prediction)
+        history_queue.append(current_prediction if current_prediction else "-")
 
         if len(history_queue) >= 3:
             most_common = Counter(history_queue).most_common(1)
             best_history_label, count = most_common[0]
 
-            if count >= (len(history_queue) / 2):
+            if count >= (len(history_queue) / 2) and best_history_label != "-":
                 final_label = best_history_label
-                final_conf = current_confidence
+                final_conf = float(current_confidence or 0.85)
             else:
                 final_label = "-"
                 final_conf = 0.0
@@ -370,25 +401,45 @@ def predict_dynamic():
         else:
             print("FFmpeg not found. Skipping conversion.")
 
-        result = dynamic_infer.predict(final_video_path, top_k=3)
+        infer = get_dynamic_infer()
+        if infer is None:
+            return jsonify({
+                "success": False,
+                "error": "Dynamic inference model is unavailable or still loading."
+            }), 503
 
-        try:
-            os.remove(webm_path)
-            if os.path.exists(mp4_path):
-                os.remove(mp4_path)
-        except Exception as cleanup_error:
-            print(f"Warning: Could not delete temp files: {cleanup_error}")
+        result = infer.predict(final_video_path, top_k=3)
+        top_pred = result.get("top_prediction", {})
+        prediction_val = top_pred.get("class", "None")
+        confidence_val = top_pred.get("overall_confidence", 0.0)
+
+        # Sanitize NaNs
+        if isinstance(confidence_val, float) and (np.isnan(confidence_val) or np.isinf(confidence_val)):
+            confidence_val = 0.0
 
         return jsonify({
             "success": True,
-            "prediction": result["top_prediction"]["class"],
-            "confidence": result["top_prediction"]["overall_confidence"], 
-            "top_k": result["all_predictions"]
+            "prediction": prediction_val if prediction_val != "None" else "-",
+            "confidence": float(confidence_val), 
+            "top_k": result.get("all_predictions", [])
         })
 
     except Exception as e:
         traceback.print_exc()
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({
+            "success": False, 
+            "prediction": "-",
+            "confidence": 0.0,
+            "error": str(e)
+        }), 500
+    finally:
+        try:
+            if webm_path and os.path.exists(webm_path):
+                os.remove(webm_path)
+            if mp4_path and os.path.exists(mp4_path):
+                os.remove(mp4_path)
+        except Exception as cleanup_error:
+            print(f"Warning: Could not delete temp files: {cleanup_error}")
 
 
 
@@ -425,5 +476,5 @@ def process_and_translate():
 if __name__ == "__main__":
     from waitress import serve
     port = int(os.environ.get("ISL_ENGINE_PORT", os.environ.get("PORT", 5001)))
-    print(f"🚀 ISL Backend running at http://localhost:{port}", file=sys.stdout)
-    serve(app, host="0.0.0.0", port=port, threads=8)
+    print(f"🚀 ISL Backend running at http://0.0.0.0:{port}", file=sys.stdout)
+    serve(app, host="0.0.0.0", port=port, threads=2)
