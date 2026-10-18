@@ -1,0 +1,12 @@
+# Place a real rigged ISL avatar GLB/GLTF here as:
+#   missingwhisper-avatar.glb
+#
+# The AvatarLoader (apps/web/src/lib/avatar) probes this exact URL at
+# /assets/avatars/missingwhisper-avatar.glb. If the file is absent, the app
+# gracefully falls back to the labelled procedural placeholder. If present, it
+# must expose the named bones defined in AVATAR_BONES (apps/web/src/lib/avatar/
+# constants.ts): root, torso, head, left_upper_arm, left_forearm, left_hand,
+# right_upper_arm, right_forearm, right_hand — otherwise the loader reports a
+# bone-validation error rather than animating a broken rig.
+#
+# This folder intentionally contains no avatar binary in Phase 2D.

@@ -1,0 +1,118 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   Base + accessibility-first global styles (VIBECODER_MASTER_PLAN.md §7, §28)
+   ========================================================================= */
+:root {
+  color-scheme: light;
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    @apply bg-clay-bg text-clay-ink font-sans antialiased;
+    margin: 0;
+  }
+
+  /* Always-visible, high-contrast keyboard focus (WCAG 2.4.7). */
+  *:focus-visible {
+    outline: none;
+    box-shadow: theme('boxShadow.clay-focus');
+    border-radius: 0.5rem;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .clay-surface {
+    @apply bg-clay-surface rounded-clay shadow-clay;
+  }
+  .clay-inset {
+    @apply bg-clay-soft rounded-clay shadow-clay-inset;
+  }
+  /* Inline loading spinner for buttons (referenced by Button.tsx). */
+  .clay-spinner {
+    display: inline-block;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 9999px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    animation: clay-spin 0.7s linear infinite;
+  }
+}
+
+@keyframes clay-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Skip link for keyboard/screen-reader users (§28). */
+.skip-link {
+  position: absolute;
+  left: -999px;
+  top: 0;
+  z-index: 100;
+  padding: 0.75rem 1.25rem;
+  background: #3b6ef5;
+  color: #fff;
+  border-radius: 0 0 0.75rem 0;
+}
+.skip-link:focus {
+  left: 0;
+}
+
+/* High-contrast mode (user toggle -> [data-contrast="high"]). */
+[data-contrast='high'] {
+  --tw-shadow: 0 0 0 transparent;
+}
+[data-contrast='high'] body,
+[data-contrast='high'] .clay-surface,
+[data-contrast='high'] .clay-inset {
+  background: #ffffff !important;
+  color: #000000 !important;
+  box-shadow: none !important;
+  border: 2px solid #000000 !important;
+}
+
+/* Large-controls mode (user toggle -> [data-large-controls="true"]): enlarge
+   primary interactive targets for users with motor/dexterity needs (§28). */
+[data-large-controls='true'] button,
+[data-large-controls='true'] a[href],
+[data-large-controls='true'] input,
+[data-large-controls='true'] select {
+  min-height: 3rem;
+}
+[data-large-controls='true'] body {
+  font-size: 1.075rem;
+}
+
+/* Honor prefers-reduced-motion (§7, §28) and the manual toggle. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+[data-reduce-motion='true'] *,
+[data-reduce-motion='true'] *::before,
+[data-reduce-motion='true'] *::after {
+  animation-duration: 0.001ms !important;
+  transition-duration: 0.001ms !important;
+}
