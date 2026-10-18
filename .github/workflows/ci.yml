@@ -1,0 +1,109 @@
+# .github/workflows/ci.yml
+name: CI
+
+on:
+  push:
+    branches: [main, sawanmani, abhinav]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Quality (typecheck · lint · unit · build · budget)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @isl/shared-types
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build --workspace @isl/web
+      - run: npm run bundle-budget
+      - name: Secret scan
+        run: |
+          if git grep -nE "(?:postgres|redis)://[^ ]*:[^ ]*@|AKIA[0-9A-Z]{16}|-----BEGIN (?:RSA |EC )?PRIVATE KEY-----" -- ':!package-lock.json' ':!*.example' ':!.github'; then
+            echo "Possible secrets detected above. Failing the build." && exit 1
+          else
+            echo "No obvious secrets found."
+          fi
+
+  postgres-integration:
+    name: Postgres + Redis integration
+    runs-on: ubuntu-latest
+    needs: quality
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: isl
+          POSTGRES_PASSWORD: isl
+          POSTGRES_DB: isl
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U isl -d isl"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      NODE_ENV: test
+      DB_DRIVER: postgres
+      REDIS_DRIVER: redis
+      DATABASE_URL: postgres://isl:isl@localhost:5432/isl
+      REDIS_URL: redis://localhost:6379
+      API_AUTH_JWT_SECRET: ci-test-secret-value-long-enough
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @isl/shared-types
+      - run: npm run migrate --workspace @isl/api
+      - run: npm run test:integration --workspace @isl/api
+
+  e2e:
+    name: Playwright E2E (Chromium)
+    runs-on: ubuntu-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - run: npm run build --workspace @isl/shared-types
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e --workspace @isl/web
+        env:
+          CI: true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
