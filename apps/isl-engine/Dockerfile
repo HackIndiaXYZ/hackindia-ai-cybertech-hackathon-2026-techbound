@@ -27,6 +27,6 @@ COPY . .
 EXPOSE 5001
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
-  CMD curl -f http://localhost:5001/health || exit 1
+  CMD curl -f http://localhost:${PORT:-5001}/health || exit 1
 
 CMD ["python", "app.py"]

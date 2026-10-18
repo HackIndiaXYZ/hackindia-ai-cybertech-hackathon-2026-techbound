@@ -26,7 +26,16 @@ export interface PostgresOptions {
 }
 
 export function createPostgresDatabase(opts: PostgresOptions): Database {
-  const pool = new pg.Pool({ connectionString: opts.connectionString, max: 10 });
+  const isSsl =
+    opts.connectionString.includes('sslmode=require') ||
+    opts.connectionString.includes('neon.tech') ||
+    process.env.DB_SSL === 'true';
+
+  const pool = new pg.Pool({
+    connectionString: opts.connectionString,
+    max: 10,
+    ...(isSsl ? { ssl: { rejectUnauthorized: false } } : {}),
+  });
 
   const q = (text: string, params?: unknown[]) => pool.query(text, params);
 
@@ -227,7 +236,7 @@ export function createPostgresDatabase(opts: PostgresOptions): Database {
       },
       async listBySession(sessionId) {
         const res = await q('SELECT * FROM messages WHERE session_id=$1 ORDER BY sent_at', [sessionId]);
-        return res.rows.map((r) => ({
+        return res.rows.map((r: any) => ({
           id: r.id,
           sessionId: r.session_id,
           senderUserId: r.sender_user_id,
@@ -300,7 +309,7 @@ export function createPostgresDatabase(opts: PostgresOptions): Database {
       },
       async listByUser(userId) {
         const res = await q('SELECT * FROM consents WHERE user_id=$1 ORDER BY granted_at', [userId]);
-        return res.rows.map((r) => ({
+        return res.rows.map((r: any) => ({
           id: r.id,
           userId: r.user_id,
           scope: r.scope,

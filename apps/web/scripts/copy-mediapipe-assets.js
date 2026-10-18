@@ -13,14 +13,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const srcRoot = path.resolve(here, '../../../node_modules/@mediapipe/hands');
+const candidateRoots = [
+  path.resolve(here, '../../../node_modules/@mediapipe/hands'),
+  path.resolve(here, '../node_modules/@mediapipe/hands'),
+  path.resolve(process.cwd(), 'node_modules/@mediapipe/hands'),
+  path.resolve(process.cwd(), 'apps/web/node_modules/@mediapipe/hands'),
+];
+const srcRoot = candidateRoots.find((p) => existsSync(p));
 const destRoot = path.resolve(here, '../public/mediapipe/hands');
 
 /** Files that are dev-only and must not ship to the browser. */
 const SKIP = new Set(['index.d.ts', 'package.json', 'README.md']);
 
 function main() {
-  if (!existsSync(srcRoot)) {
+  if (!srcRoot) {
     console.warn('[copy-mediapipe-assets] @mediapipe/hands not found; skipping (webcam features unavailable until installed).');
     return;
   }

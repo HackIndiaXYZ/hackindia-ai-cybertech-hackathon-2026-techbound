@@ -39,6 +39,6 @@ EXPOSE 4000
 # Health check hits the versioned endpoint; DB/Redis may report "degraded" in
 # fallback mode but the HTTP layer being up is what the container gate checks.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:4000/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  CMD node -e "const p = process.env.PORT || process.env.API_PORT || 4000; fetch('http://127.0.0.1:' + p + '/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "apps/api/dist/index.js"]

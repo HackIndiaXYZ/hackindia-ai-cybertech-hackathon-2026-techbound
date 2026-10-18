@@ -21,7 +21,9 @@ const EnvSchema = z.object({
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
 
   API_HOST: z.string().default('0.0.0.0'),
-  API_PORT: z.coerce.number().int().positive().default(4000),
+  API_PORT: z
+    .preprocess((val) => val ?? process.env.PORT, z.coerce.number().int().positive())
+    .default(4000),
   CORS_ALLOWED_ORIGINS: csv.default('http://localhost:5173'),
 
   API_AUTH_JWT_SECRET: z.string().min(1).default('change-me-in-production'),
@@ -51,6 +53,10 @@ const EnvSchema = z.object({
 
   REDIS_DRIVER: z.enum(['redis', 'fallback']).default('fallback'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
+  ALLOW_FALLBACK_REDIS: z
+    .enum(['true', 'false'])
+    .default('false')
+    .transform((v) => v === 'true'),
 
   STUN_URLS: csv.default('stun:stun.l.google.com:19302'),
   TURN_URL: z.string().default(''),
@@ -89,8 +95,13 @@ const isProd = env.NODE_ENV === 'production';
 if (isProd && env.API_AUTH_JWT_SECRET === 'change-me-in-production') {
   throw new Error('Refusing to start in production with the default JWT secret.');
 }
-if (isProd && (env.DB_DRIVER !== 'postgres' || env.REDIS_DRIVER !== 'redis')) {
-  throw new Error('Production must use real postgres + redis drivers, not fallbacks.');
+if (isProd && env.DB_DRIVER !== 'postgres') {
+  throw new Error('Production must use real postgres driver (e.g. Neon PostgreSQL), not fallback.');
+}
+if (isProd && env.REDIS_DRIVER !== 'redis' && !env.ALLOW_FALLBACK_REDIS) {
+  throw new Error(
+    'Production requires a real redis driver (e.g. Upstash Redis / Redis URL). Set REDIS_DRIVER=redis and REDIS_URL, or explicitly set ALLOW_FALLBACK_REDIS=true to permit the in-memory fallback.',
+  );
 }
 // 4E.4.2: refuse to boot with a half-configured TURN server (a set but credential-less
 // TURN silently degrades every relay candidate to host/srflx -> mobile-data failures).

@@ -4,10 +4,12 @@ import { logger } from '../logger.js';
 
 /** Real Redis-backed KV store using ioredis (lazy connect, keyed TTL). */
 export function createRedisKVStore(url: string): KVStore {
+  const isTls = url.startsWith('rediss://') || process.env.REDIS_TLS === 'true';
   const client = new Redis(url, {
     maxRetriesPerRequest: 3,
     enableOfflineQueue: true,
     lazyConnect: true,
+    ...(isTls ? { tls: { rejectUnauthorized: false } } : {}),
     retryStrategy(times) {
       const delay = Math.min(times * 100, 3000);
       return delay;
