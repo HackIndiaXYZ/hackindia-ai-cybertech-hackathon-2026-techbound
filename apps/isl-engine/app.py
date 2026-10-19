@@ -197,6 +197,14 @@ def get_dynamic_infer():
             print(f"⚠️ Error loading Dynamic Infer: {e}", file=sys.stderr)
     return dynamic_infer
 
+@app.route("/", methods=["GET"])
+def index():
+    return jsonify({
+        'service': 'ISL ML Engine',
+        'status': 'online',
+        'version': '1.0.0'
+    })
+
 @app.route("/health", methods=["GET"])
 def health_check():
     return jsonify({
@@ -475,6 +483,6 @@ def process_and_translate():
 
 if __name__ == "__main__":
     from waitress import serve
-    port = int(os.environ.get("ISL_ENGINE_PORT", os.environ.get("PORT", 5001)))
+    port = int(os.environ.get("ISL_ENGINE_PORT", os.environ.get("PORT", 7860)))
     print(f"🚀 ISL Backend running at http://0.0.0.0:{port}", file=sys.stdout)
     serve(app, host="0.0.0.0", port=port, threads=2)

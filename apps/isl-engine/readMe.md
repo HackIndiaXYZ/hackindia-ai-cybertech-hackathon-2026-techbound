@@ -1,3 +1,13 @@
+---
+title: ISL ML Engine
+emoji: 🤟
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # 🤟 Indian Sign Language Recognition System
 
 > A production-grade, real-time sign language recognition system combining computer vision, deep learning, and advanced NLP for comprehensive ISL-to-text-to-speech translation.
