@@ -24,6 +24,13 @@ export interface TranslateResult {
   success: boolean;
 }
 
+export interface FormatSentenceResult {
+  formed_sentence: string;
+  translated_sentence?: string;
+  is_rule_based: boolean;
+  success: boolean;
+}
+
 const API_BASE = '/api/v1/isl';
 
 /**
@@ -92,6 +99,23 @@ export const islEngineClient = {
     });
     if (!resp.ok) {
       throw new Error(`Translation failed: ${resp.statusText}`);
+    }
+    const json = await resp.json();
+    return json.data ?? json;
+  },
+
+  /**
+   * Converts ISL gloss tokens into a grammatically formed English sentence
+   * and optional Indian language translation.
+   */
+  async formatSentence(glosses: string | string[], language?: string): Promise<FormatSentenceResult> {
+    const resp = await fetch(`${API_BASE}/format_sentence`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ glosses, language }),
+    });
+    if (!resp.ok) {
+      throw new Error(`Sentence formation failed: ${resp.statusText}`);
     }
     const json = await resp.json();
     return json.data ?? json;

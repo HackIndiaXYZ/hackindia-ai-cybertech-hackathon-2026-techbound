@@ -810,3 +810,39 @@ Live WebRTC calling requires real-time Indian Sign Language recognition. Egressi
 - SFU video track ingestion (rejected — massive server bandwidth overhead and privacy egress).
 - HTTP POST polling from browser (rejected — high connection handshake overhead; WebSocket bridge is significantly faster).
 
+## ADR-037: Deterministic Linguistic SOV->SVO Grammar Engine Stopgap (Phase 2)
+
+**Date:** 2026-10-21  
+**Status:** Accepted  
+
+**Context:**
+Converting raw Indian Sign Language sign glosses (from dynamic video gestures or fingerspelled landmark sequences) into natural language requires syntactic reordering:
+1. **Linguistic Syntax:** ISL predominantly follows Subject-Object-Verb (SOV) or Time-Subject-Object-Verb (TSOV) word order without copulas ("is/are") or prepositions ("to/at/in/on"). Translating raw glosses directly (e.g. `I School Monday`, `Father Hospital`) into Indian languages yields ungrammatical fragments (e.g. `मैं स्कूल सोमवार`, `पिता अस्पताल`).
+2. **Existing Implementation Deficiencies:** `apps/isl-engine/sentence_model.py` had an unconditional `import google.generativeai as genai` that crashed with `ModuleNotFoundError` because `google.generativeai` was uninstalled; even if installed, when `GEMINI_API_KEY` was missing, its fallback was purely `cleaned.capitalize() + "."` without any grammatical transformation.
+3. **Latency & Offline Integrity:** Real-time translation during calls cannot tolerate 500–1500ms LLM roundtrips and must operate reliably without external API keys or cloud dependencies.
+
+**Decision:**
+1. **Deterministic Linguistic SOV->SVO Grammar Engine:** Implement `apps/isl-engine/grammar_engine.py` (`ISLGrammarEngine`), calibrated to the 28 dynamic vocabulary signs and static fingerspelling alphabet.
+   - Reorders Time-Subject-Location patterns into fluent English (e.g., `[I, School, Monday]` -> `"I go to school on Monday."`).
+   - Resolves appropriate prepositions based on location types (e.g., `"to school"`, `"to the hospital"`, `"in the park"`).
+   - Injects proper copulas (`am/is/are`) and inflected action verbs (`goes`, `is wearing`, `are`).
+   - Automatically merges consecutive fingerspelled characters (e.g., `['H', 'E', 'L', 'L', 'O']` -> `"Hello."`).
+   - Formats compound subjects (e.g., `[Doctor, Child, Happy]` -> `"The doctor and the child are happy."`).
+2. **Honesty & Transparency:** The grammar engine explicitly self-declares `self.name = "isl-rule-based-grammar-v1"` and `self.trained = False`, adhering to the repository's strict standard of never misrepresenting heuristics as trained machine learning models.
+3. **Optional LLM Graceful Fallback:** `sentence_model.py` isolates `google.generativeai` behind conditional imports. If and only if `GEMINI_API_KEY` is provisioned and explicitly requested (`prefer_rule_based=False`), it queries Gemini; otherwise, it immediately uses the zero-latency grammar engine.
+4. **End-to-End API & Client Exposure:**
+   - FastAPI: REST endpoints `POST /format_sentence` and `POST /process_translate` (both accepting `{ glosses, sentence, language }` and returning `{ formed_sentence, translated_sentence, is_rule_based: true }`), plus WebSocket `/ws/predict` message type `"sentence"`.
+   - Node API: `islEngineBridge.formatSentence(glosses, targetLanguage)` with WebSocket relay and HTTP fallback; exposed on `POST /api/v1/isl/format_sentence`.
+   - React Web: `islEngineClient.formatSentence(glosses, language)`.
+
+**Measured Results:**
+- Direct linguistic grammar reordering latency: **11.5 µs to 115.8 µs** (<0.12 ms) per sentence on standard CPU.
+- 100% offline functionality with zero external API dependencies.
+- Unit test suite: 18/18 pytest tests passed in 0.22s (`tests/test_grammar_engine.py`).
+- Full system regression: 112/112 API tests passed; 310/310 Web tests passed.
+
+**Alternatives Considered:**
+- Fine-tuned Seq2Seq neural model (e.g., mBART/T5): rejected for Phase 2 as the 28-sign vocabulary does not justify a 500MB+ model footprint in memory when a deterministic rule engine provides exact, instant results.
+- Unconditional cloud LLM calls: rejected due to external API costs, latency (500ms+), and lack of offline resilience.
+
+

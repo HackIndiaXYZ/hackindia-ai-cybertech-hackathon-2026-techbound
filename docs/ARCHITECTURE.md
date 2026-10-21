@@ -215,3 +215,38 @@ persistence details out of route handlers.
 └────────────────────────────────┘
 ```
 
+### 8.2 Sign Gloss to Grammatical Sentence Pipeline (Phase 2)
+
+Raw sign outputs from the vision pipeline produce discrete sign gloss sequences following Indian Sign Language syntax (primarily Topic-Comment / Subject-Object-Verb, lacking English copulas, inflections, and prepositions).
+
+```
+┌─────────────────────────────────┐
+│ Sign Gloss Tokens               │
+│ e.g. ["I", "School", "Monday"]  │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│ ISLGrammarEngine (Python)       │
+│ - Lexicon category tagger       │
+│ - TSOV -> SVO syntactic parser  │
+│ - Copula & preposition injector │
+│ - Fingerspelling character merge│
+│   (ADR-037, trained=False)      │
+└────────────────┬────────────────┘
+                 │ Formed English: "I go to school on Monday."
+                 ▼
+┌─────────────────────────────────┐
+│ Translation & TTS Layer         │
+│ - Indian Language Translator    │
+│   (Hindi, Marathi, etc.)        │
+│ - Web Speech TTS Playback       │
+└─────────────────────────────────┘
+```
+
+Endpoints providing sentence formation:
+- `POST /format_sentence` (FastAPI) & `POST /process_translate`: accepts `{ glosses, sentence, language }`, returns `{ formed_sentence, translated_sentence, is_rule_based: true }`.
+- WebSocket `/ws/predict` (FastAPI): accepts `{ type: "sentence", glosses: [...] }`.
+- `POST /api/v1/isl/format_sentence` (Express API) proxies to the ML engine via `islEngineBridge.formatSentence()`.
+
+

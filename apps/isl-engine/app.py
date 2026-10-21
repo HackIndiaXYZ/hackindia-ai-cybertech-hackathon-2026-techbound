@@ -69,9 +69,12 @@ except Exception as e:
     add_visualization_to_inference = None
 
 try:
-    from sentence_model import ISLConverter   
+    from sentence_model import ISLConverter, build_sentence
+    from grammar_engine import grammar_engine
 except Exception as e:
     ISLConverter = None
+    build_sentence = None
+    grammar_engine = None
 
 try:
     from translation_model import translate_text, IndianLanguageTranslator
@@ -482,13 +485,14 @@ async def predict_dynamic_endpoint(video: UploadFile = File(...)):
 async def process_translate_endpoint(request: Request):
     try:
         data = await request.json()
-        raw_sentence = data.get("sentence", "")
+        raw_sentence = data.get("sentence") or data.get("glosses") or ""
         target_lang = data.get("language", "hi")
         formed, translated = run_translation(raw_sentence, target_lang)
         return {
             "success": True,
             "formed_sentence": formed,
-            "translated_sentence": translated
+            "translated_sentence": translated,
+            "is_rule_based": True
         }
     except Exception as e:
         traceback.print_exc()
@@ -595,6 +599,29 @@ async def predict_landmarks_endpoint(request: Request):
         traceback.print_exc()
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
+@app.post("/format_sentence")
+async def format_sentence_endpoint(request: Request):
+    """HTTP endpoint to convert an ISL gloss sequence into grammatical English and optional Indian language."""
+    try:
+        data = await request.json()
+        glosses = data.get("glosses") or data.get("sentence") or ""
+        target_lang = data.get("language")
+        formed = build_sentence(glosses) if build_sentence else str(glosses).capitalize() + "."
+        res = {
+            "success": True,
+            "formed_sentence": formed,
+            "is_rule_based": True
+        }
+        if target_lang and translate_text:
+            try:
+                res["translated_sentence"] = translate_text(formed, target_lang)
+            except Exception:
+                res["translated_sentence"] = formed
+        return res
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
 @app.websocket("/ws/predict")
 async def websocket_predict_endpoint(websocket: WebSocket):
     """
@@ -602,6 +629,7 @@ async def websocket_predict_endpoint(websocket: WebSocket):
     Accepts JSON messages:
       - {"type": "ping"} -> {"type": "pong", "timestamp": ...}
       - {"type": "static", "landmarks": [...]} -> static prediction
+      - {"type": "sentence", "glosses": [...]} -> grammatical sentence formation
       - {"type": "landmarks"|"window", "landmarks": [...]} -> dynamic prediction
     """
     await websocket.accept()
@@ -614,6 +642,26 @@ async def websocket_predict_endpoint(websocket: WebSocket):
             msg_type = data.get("type", "window")
             if msg_type == "ping":
                 await websocket.send_json({"type": "pong", "timestamp": time.time()})
+                continue
+
+            if msg_type in ("sentence", "grammar", "gloss_sequence"):
+                glosses = data.get("glosses") or data.get("sentence") or data.get("sequence") or ""
+                target_lang = data.get("language")
+                formed = build_sentence(glosses) if build_sentence else str(glosses).capitalize() + "."
+                resp = {
+                    "success": True,
+                    "type": "sentence",
+                    "reqId": data.get("reqId"),
+                    "formed_sentence": formed,
+                    "is_rule_based": True,
+                    "clientTimestamp": data.get("clientTimestamp")
+                }
+                if target_lang and translate_text:
+                    try:
+                        resp["translated_sentence"] = translate_text(formed, target_lang)
+                    except Exception:
+                        resp["translated_sentence"] = formed
+                await websocket.send_json(resp)
                 continue
 
             if msg_type == "static":

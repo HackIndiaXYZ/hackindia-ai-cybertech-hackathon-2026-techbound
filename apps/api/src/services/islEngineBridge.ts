@@ -15,13 +15,22 @@ export interface IslEnginePrediction {
   latencyMs?: number;
 }
 
+export interface IslEngineSentenceResult {
+  formed_sentence: string;
+  translated_sentence?: string;
+  is_rule_based: boolean;
+  latencyMs?: number;
+}
+
 type Resolver = (val: IslEnginePrediction | null) => void;
+type SentenceResolver = (val: IslEngineSentenceResult | null) => void;
 
 class IslEngineBridge {
   private ws: WebSocket | null = null;
   private connected = false;
   private reconnectTimer: NodeJS.Timeout | null = null;
   private pendingRequests: Map<string, { resolve: Resolver; timer: NodeJS.Timeout; startMs: number }> = new Map();
+  private pendingSentenceRequests: Map<string, { resolve: SentenceResolver; timer: NodeJS.Timeout; startMs: number }> = new Map();
   private reqCounter = 0;
 
   constructor() {
@@ -52,7 +61,25 @@ class IslEngineBridge {
           const data = JSON.parse(event.data.toString());
           if (data.type === 'pong') return;
 
-          // If correlation id exists
+          // Check for sentence formation response
+          if (data.type === 'sentence') {
+            const reqId = data.reqId;
+            if (reqId && this.pendingSentenceRequests.has(reqId)) {
+              const entry = this.pendingSentenceRequests.get(reqId)!;
+              clearTimeout(entry.timer);
+              this.pendingSentenceRequests.delete(reqId);
+              const latencyMs = performance.now() - entry.startMs;
+              entry.resolve({
+                formed_sentence: data.formed_sentence || '',
+                translated_sentence: data.translated_sentence,
+                is_rule_based: data.is_rule_based ?? true,
+                latencyMs,
+              });
+              return;
+            }
+          }
+
+          // If correlation id exists for landmark prediction
           const reqId = data.reqId;
           if (reqId && this.pendingRequests.has(reqId)) {
             const entry = this.pendingRequests.get(reqId)!;
@@ -74,7 +101,7 @@ class IslEngineBridge {
             return;
           }
 
-          // Otherwise, resolve the oldest pending request if any
+          // Otherwise, resolve the oldest pending landmark request if any
           if (this.pendingRequests.size > 0) {
             const [firstKey, entry] = this.pendingRequests.entries().next().value!;
             clearTimeout(entry.timer);
@@ -128,6 +155,12 @@ class IslEngineBridge {
       entry.resolve(null);
     }
     this.pendingRequests.clear();
+
+    for (const [, entry] of this.pendingSentenceRequests.entries()) {
+      clearTimeout(entry.timer);
+      entry.resolve(null);
+    }
+    this.pendingSentenceRequests.clear();
   }
 
   /**
@@ -202,6 +235,85 @@ class IslEngineBridge {
         confidence: data.confidence ?? 0,
         breakdown: data.breakdown ?? { gating: 0, specialist: 0 },
         clientTimestamp,
+        latencyMs,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Reorder and format sign glosses into a grammatical English sentence
+   * and optional target Indian language translation.
+   * Uses WebSocket if connected; falls back to HTTP POST /format_sentence.
+   */
+  public async formatSentence(
+    glosses: string | string[],
+    targetLanguage?: string,
+  ): Promise<IslEngineSentenceResult | null> {
+    const startMs = performance.now();
+
+    // 1. WebSocket attempt
+    if (this.connected && this.ws && this.ws.readyState === WebSocket.OPEN) {
+      return new Promise<IslEngineSentenceResult | null>((resolve) => {
+        const reqId = `sent-${++this.reqCounter}-${Date.now()}`;
+        const timer = setTimeout(() => {
+          if (this.pendingSentenceRequests.has(reqId)) {
+            this.pendingSentenceRequests.delete(reqId);
+            this.fallbackHttpFormatSentence(glosses, targetLanguage, startMs).then(resolve);
+          }
+        }, 3000);
+
+        this.pendingSentenceRequests.set(reqId, { resolve, timer, startMs });
+
+        try {
+          this.ws!.send(
+            JSON.stringify({
+              type: 'sentence',
+              reqId,
+              glosses,
+              language: targetLanguage,
+            }),
+          );
+        } catch {
+          clearTimeout(timer);
+          this.pendingSentenceRequests.delete(reqId);
+          this.fallbackHttpFormatSentence(glosses, targetLanguage, startMs).then(resolve);
+        }
+      });
+    }
+
+    // 2. HTTP Fallback attempt
+    return this.fallbackHttpFormatSentence(glosses, targetLanguage, startMs);
+  }
+
+  private async fallbackHttpFormatSentence(
+    glosses: string | string[],
+    targetLanguage?: string,
+    startMs: number = performance.now(),
+  ): Promise<IslEngineSentenceResult | null> {
+    try {
+      const resp = await fetch(`${config.islEngineBaseUrl}/format_sentence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glosses, language: targetLanguage }),
+        signal: AbortSignal.timeout(4000),
+      });
+
+      if (!resp.ok) return null;
+      const data = (await resp.json()) as {
+        success?: boolean;
+        formed_sentence?: string;
+        translated_sentence?: string;
+        is_rule_based?: boolean;
+      };
+      if (!data.success || !data.formed_sentence) return null;
+
+      const latencyMs = performance.now() - startMs;
+      return {
+        formed_sentence: data.formed_sentence,
+        translated_sentence: data.translated_sentence,
+        is_rule_based: data.is_rule_based ?? true,
         latencyMs,
       };
     } catch {
