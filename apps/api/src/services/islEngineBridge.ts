@@ -135,7 +135,7 @@ class IslEngineBridge {
         this.drainPending('WS closed');
         this.scheduleReconnect();
       };
-    } catch (err) {
+    } catch {
       this.connected = false;
       this.scheduleReconnect();
     }

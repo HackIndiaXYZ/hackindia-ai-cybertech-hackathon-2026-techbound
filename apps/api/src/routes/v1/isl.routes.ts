@@ -77,10 +77,10 @@ islRouter.post(
   asyncHandler(async (req, res) => {
     try {
       const contentType = req.headers['content-type'] ?? '';
-      const fetchOptions: any = {
+      const fetchOptions: RequestInit & { duplex?: string } = {
         method: 'POST',
         headers: contentType ? { 'Content-Type': contentType } : {},
-        body: Readable.toWeb(req),
+        body: Readable.toWeb(req) as unknown as BodyInit,
         duplex: 'half',
       };
       const resp = await fetch(`${config.islEngineBaseUrl}/predict/dynamic`, fetchOptions);
