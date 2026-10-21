@@ -196,8 +196,8 @@ export function Voice() {
                 disabled={!caps.ratePitch}
                 aria-pressed={isActive}
                 className={
-                  'rounded-clay px-4 py-2 text-sm font-medium shadow-clay-inset transition-colors disabled:opacity-50 ' +
-                  (isActive ? 'bg-clay-primary text-white' : 'bg-clay-soft text-clay-ink hover:bg-clay-edge/60')
+                  'rounded-clay border-2 border-clay-edge/60 px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-50 ' +
+                  (isActive ? 'border-clay-primary bg-clay-primary text-clay-primary-ink' : 'border-transparent bg-clay-soft text-clay-ink hover:bg-clay-edge/30')
                 }
               >
                 {p.label}

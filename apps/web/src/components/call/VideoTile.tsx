@@ -72,7 +72,7 @@ export function VideoTile({ stream, participant, isLocal, mirror, label, active 
       )}
 
       {down && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-clay-ink/60 px-4 text-center text-white">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/65 px-4 text-center text-white">
           <span role="status" className="text-sm font-semibold">
             {participant?.reconnect?.exhausted
               ? 'Connection lost — reconnect attempts stopped'
@@ -88,7 +88,7 @@ export function VideoTile({ stream, participant, isLocal, mirror, label, active 
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-clay-ink/40 px-3 py-1.5 text-white">
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-black/55 px-3 py-1.5 text-white">
         <span className="truncate text-sm font-semibold">
           {label}{isLocal ? ' (You)' : ''}
           {active && <span role="status" className="ml-2 text-xs font-bold text-clay-accent">Speaking</span>}

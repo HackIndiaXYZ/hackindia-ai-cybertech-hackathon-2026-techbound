@@ -7,6 +7,8 @@ import type { SettingsState } from '../store/settingsSlice.js';
 export function applySettingsToDocument(settings: SettingsState): void {
   if (typeof document === 'undefined') return;
   const root = document.documentElement;
+  root.dataset.theme = settings.theme ?? 'night';
+  root.style.setProperty('--user-scale', String(settings.textScale ?? 1));
   root.dataset.contrast = settings.highContrast ? 'high' : 'normal';
   root.dataset.reduceMotion = String(settings.reduceMotion);
   root.dataset.largeControls = String(settings.largeControls);

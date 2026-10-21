@@ -167,7 +167,7 @@ export function Translator() {
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">
         <Card className="flex flex-col gap-4">
-          <div className="relative overflow-hidden rounded-clay bg-clay-soft" style={{ aspectRatio: '4 / 3' }}>
+          <div className="relative max-h-[52vh] overflow-hidden rounded-clay border-2 border-clay-edge/50 bg-clay-soft" style={{ aspectRatio: '4 / 3' }}>
             <video
               ref={vision.videoRef}
               className="absolute inset-0 h-full w-full object-cover"
@@ -234,10 +234,10 @@ export function Translator() {
 
           {/* Dynamic Sign Prediction Output */}
           {dynamicResult && (
-            <div className="rounded-clay border border-emerald-300 bg-emerald-50 p-4 dark:bg-emerald-950/20" aria-live="polite" aria-atomic="true">
+            <div className="rounded-clay border-2 border-clay-accent/60 bg-clay-accent/10 p-4" aria-live="polite" aria-atomic="true">
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wide text-emerald-800 dark:text-emerald-300">
+                  <span className="text-xs font-bold uppercase tracking-wide text-clay-accent">
                     Recognized Dynamic Sign
                   </span>
                   <h3 className="text-2xl font-black text-clay-ink">
@@ -245,7 +245,7 @@ export function Translator() {
                   </h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-emerald-600">
+                  <span className="text-lg font-bold text-clay-accent">
                     {pct(dynamicResult.confidence)}
                   </span>
                   <Button type="button" size="sm" variant="secondary" onClick={() => addWordToSentence(dynamicResult.prediction)}>
@@ -255,11 +255,11 @@ export function Translator() {
               </div>
 
               {dynamicResult.top_k && dynamicResult.top_k.length > 0 && (
-                <div className="mt-3 flex flex-col gap-1 border-t border-emerald-200/60 pt-2 text-xs">
+                <div className="mt-3 flex flex-col gap-1 border-t-2 border-clay-edge/40 pt-2 text-xs">
                   <span className="text-clay-muted">Top Candidate Matches:</span>
                   <div className="grid grid-cols-3 gap-2">
                     {dynamicResult.top_k.map((cand, idx) => (
-                      <div key={idx} className="rounded bg-white/80 p-1.5 shadow-sm dark:bg-clay-soft">
+                      <div key={idx} className="rounded-clay border-2 border-clay-edge/50 bg-clay-soft p-1.5">
                         <div className="flex justify-between font-medium">
                           <span>{cand.class}</span>
                           <span>{pct(cand.overall_confidence ?? cand.probability ?? 0)}</span>
@@ -273,7 +273,7 @@ export function Translator() {
           )}
 
           {dynamicError && (
-            <div className="rounded-clay border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="alert">
+            <div className="rounded-clay border-2 border-clay-warn/60 bg-clay-warn/10 p-3 text-sm text-clay-warn" role="alert">
               {dynamicError}
             </div>
           )}
@@ -333,7 +333,7 @@ export function Translator() {
               Combine recognized ISL signs into a sentence and convert to fluent spoken language.
             </p>
 
-            <div className="min-h-[2.5rem] rounded-clay border border-clay-edge bg-clay-soft p-2.5" aria-live="polite" aria-atomic="true">
+            <div className="min-h-[2.5rem] rounded-clay border-2 border-clay-edge/60 bg-clay-soft p-2.5" aria-live="polite" aria-atomic="true">
               {sentenceWords.length === 0 ? (
                 <span className="text-xs text-clay-muted">No signs added yet. Click "+ Add" on recognized signs.</span>
               ) : (
@@ -343,7 +343,7 @@ export function Translator() {
                       {word}
                       <button
                         type="button"
-                        className="text-clay-muted hover:text-red-500"
+                        className="text-clay-muted hover:text-clay-danger"
                         aria-label={`Remove ${word} from sentence`}
                         onClick={() => setSentenceWords((current) => current.filter((_, idx) => idx !== i))}
                       >
@@ -365,7 +365,7 @@ export function Translator() {
                 onChange={(e) => setTargetLang(e.target.value)}
                 aria-label="Target language"
                 aria-describedby="sentence-builder-help"
-                className="rounded border border-clay-edge bg-white px-2 py-1 text-xs text-clay-ink shadow-sm"
+                className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-2 py-1 text-xs font-semibold text-clay-ink"
               >
                 <option value="hi">Hindi (हिंदी)</option>
                 <option value="en">English</option>

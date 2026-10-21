@@ -6,7 +6,7 @@ import { renderWithProviders } from './render.js';
 describe('App routing shell', () => {
   it('renders the public landing page at /', () => {
     renderWithProviders(<App />, { route: '/' });
-    expect(screen.getByRole('heading', { level: 1, name: /Bridging Indian Sign Language/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /Every sign heard/i })).toBeInTheDocument();
     // Accessibility: a skip link is present on the public shell (§28).
     expect(screen.getByText('Skip to main content')).toBeInTheDocument();
   });

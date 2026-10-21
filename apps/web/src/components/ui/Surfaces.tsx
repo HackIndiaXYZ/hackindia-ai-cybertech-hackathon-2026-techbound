@@ -17,17 +17,23 @@ export function ClayCard(props: HTMLAttributes<HTMLDivElement>) {
 type Tone = 'neutral' | 'success' | 'warning' | 'danger' | 'info';
 
 const toneClasses: Record<Tone, string> = {
-  neutral: 'bg-clay-soft text-clay-ink',
-  success: 'bg-clay-accent/15 text-clay-accent',
-  warning: 'bg-clay-warn/15 text-clay-warn',
-  danger: 'bg-clay-danger/15 text-clay-danger',
-  info: 'bg-clay-primary/15 text-clay-primary',
+  neutral: 'border-clay-edge/70 text-clay-ink',
+  success: 'border-clay-accent text-clay-accent',
+  warning: 'border-clay-warn text-clay-warn',
+  danger: 'border-clay-danger text-clay-danger',
+  info: 'border-clay-info text-clay-info',
 };
 
-/** Compact status badge. Non-color-only cue: also shows text label (§28). */
+/** Compact status badge — chips carry an icon/text cue as well as a border. */
 export function Badge({ tone = 'neutral', children, className }: { tone?: Tone; children: ReactNode; className?: string }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1 rounded-pill px-3 py-1 text-sm font-medium', toneClasses[tone], className)}>
+    <span
+      className={clsx(
+        'inline-flex items-center gap-1 rounded-pill border-2 px-3 py-1 text-sm font-bold',
+        toneClasses[tone],
+        className,
+      )}
+    >
       {children}
     </span>
   );

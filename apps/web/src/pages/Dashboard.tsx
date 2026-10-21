@@ -1,115 +1,165 @@
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '../store/index.js';
-import { Card, Button, StatusIndicator } from '../components/ui/index.js';
+import { Card, Button, StatusIndicator, Icon, type IconName } from '../components/ui/index.js';
+
+interface ActionCard {
+  title: string;
+  body: string;
+  to: string;
+  cta: string;
+  icon: IconName;
+}
+
+const START_CARDS: ActionCard[] = [
+  {
+    title: 'Start a call',
+    body: 'Live video call with a peer, captions and sign translation side by side.',
+    to: '/call/new',
+    cta: 'Open call room',
+    icon: 'call',
+  },
+  {
+    title: 'Translator',
+    body: 'Sign-to-text and speech-to-text without starting a call.',
+    to: '/app/translator',
+    cta: 'Open translator',
+    icon: 'translator',
+  },
+];
+
+const TOOL_CARDS: ActionCard[] = [
+  {
+    title: 'Standalone translator',
+    body: 'Speak or type → large transcript → avatar signs it. No call needed.',
+    to: '/app/standalone',
+    cta: 'Open standalone',
+    icon: 'standalone',
+  },
+  {
+    title: 'Speech → ISL pipeline',
+    body: 'Rule-based glossary translation driving the avatar (prototype).',
+    to: '/app/pipeline',
+    cta: 'Open pipeline',
+    icon: 'pipeline',
+  },
+  {
+    title: 'Voice / read-aloud',
+    body: 'Browser text-to-speech: pick a voice, set pace, preview playback.',
+    to: '/app/voice',
+    cta: 'Open voice',
+    icon: 'voice',
+  },
+  {
+    title: '3D avatar',
+    body: 'Avatar animation foundation (development placeholder).',
+    to: '/app/avatar',
+    cta: 'Open avatar',
+    icon: 'avatar',
+  },
+];
+
+const ACTIVITY_CARDS: ActionCard[] = [
+  {
+    title: 'History',
+    body: 'Your saved sessions and the transcripts consent allowed us to keep.',
+    to: '/app/history',
+    cta: 'Open history',
+    icon: 'history',
+  },
+  {
+    title: 'Contacts',
+    body: 'The people you have recently been in a session with.',
+    to: '/app/contacts',
+    cta: 'Open contacts',
+    icon: 'contacts',
+  },
+  {
+    title: 'Guided tour',
+    body: 'New here? A 30-second walk-through of the essentials.',
+    to: '/app/onboarding',
+    cta: 'Take the tour',
+    icon: 'sparkle',
+  },
+];
+
+function ActionGrid({ cards, columns }: { cards: ActionCard[]; columns: string }) {
+  return (
+    <div className={`grid gap-5 ${columns}`}>
+      {cards.map((card) => (
+        <Card key={card.title} className="flex flex-col gap-3 p-6">
+          <span className="flex h-11 w-11 items-center justify-center rounded-clay border-2 border-clay-primary/50 text-clay-primary">
+            <Icon name={card.icon} />
+          </span>
+          <h3 className="text-lg font-bold">{card.title}</h3>
+          <p className="flex-1 text-clay-muted">{card.body}</p>
+          <Link to={card.to} className="mt-1">
+            <Button variant="secondary" fullWidth>
+              {card.cta}
+            </Button>
+          </Link>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
 /** Authenticated home. Real-time features are honestly gated to later phases. */
 export function Dashboard() {
   const user = useAppSelector((s) => s.auth.user);
 
   return (
-    <div className="flex flex-col gap-8">
-      <section className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold text-clay-ink">
+    <div className="flex flex-col gap-12">
+      <header className="flex flex-col gap-3">
+        <p className="text-sm font-bold uppercase tracking-[0.18em] text-clay-muted">Workspace</p>
+        <h1 className="text-3xl font-bold sm:text-4xl">
           {user ? `Welcome, ${user.displayName}` : 'Welcome'}
         </h1>
-        <StatusIndicator tone="success" label="Live calling is available (Phase 2A)" />
-      </section>
+        <div className="flex flex-wrap items-center gap-3">
+          <StatusIndicator tone="success" label="Live calling is available (Phase 2A)" />
+          <span className="rounded-pill border-2 border-clay-edge/60 px-3 py-0.5 text-xs font-bold text-clay-muted">
+            Press <kbd className="font-mono">Tab</kbd> to navigate by keyboard
+          </span>
+        </div>
+      </header>
 
-      <section aria-labelledby="quick-actions" className="flex flex-col gap-4">
-        <h2 id="quick-actions" className="text-xl font-semibold text-clay-ink">
-          Quick actions
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Start a call</h3>
-            <p className="flex-1 text-clay-muted">Live video call with a peer and text fallback.</p>
-            <Link to="/call/new">
-              <Button variant="secondary" fullWidth>
-                Open call room
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Translator</h3>
-            <p className="flex-1 text-clay-muted">Sign-to-text and speech-to-text without a call.</p>
-            <Link to="/app/translator">
-              <Button variant="secondary" fullWidth>
-                Open translator
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">3D Avatar</h3>
-            <p className="flex-1 text-clay-muted">Avatar animation foundation (development placeholder).</p>
-            <Link to="/app/avatar">
-              <Button variant="secondary" fullWidth>
-                Open avatar
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Speech → ISL Pipeline</h3>
-            <p className="flex-1 text-clay-muted">Rule-based glossary translation driving the avatar (prototype).</p>
-            <Link to="/app/pipeline">
-              <Button variant="secondary" fullWidth>
-                Open pipeline
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Voice / Read-aloud</h3>
-            <p className="flex-1 text-clay-muted">Text-to-speech settings, preview and playback (browser voice).</p>
-            <Link to="/app/voice">
-              <Button variant="secondary" fullWidth>
-                Open voice
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Standalone Translator</h3>
-            <p className="flex-1 text-clay-muted">Speak or type → huge transcript → avatar signs it. No call needed.</p>
-            <Link to="/app/standalone">
-              <Button variant="secondary" fullWidth>
-                Open standalone
-              </Button>
-            </Link>
-          </Card>
+      <section aria-labelledby="start-heading" className="flex flex-col gap-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="start-heading" className="text-xl font-bold sm:text-2xl">
+            Start here
+          </h2>
+          <span className="text-sm text-clay-muted">Two doors into the same conversation</span>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2">
+          {START_CARDS.map((card) => (
+            <Card key={card.title} className="flex flex-col gap-3 p-6">
+              <span className="flex h-11 w-11 items-center justify-center rounded-clay border-2 border-clay-primary bg-clay-primary/15 text-clay-primary">
+                <Icon name={card.icon} />
+              </span>
+              <h3 className="text-lg font-bold">{card.title}</h3>
+              <p className="flex-1 text-clay-muted">{card.body}</p>
+              <Link to={card.to} className="mt-1">
+                <Button fullWidth>{card.cta}</Button>
+              </Link>
+            </Card>
+          ))}
         </div>
       </section>
 
-      <section aria-labelledby="recent" className="flex flex-col gap-4">
-        <h2 id="recent" className="text-xl font-semibold text-clay-ink">
-          Pick up where you left off
-        </h2>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">History</h3>
-            <p className="flex-1 text-clay-muted">Your saved sessions and the transcripts consent allowed us to keep.</p>
-            <Link to="/app/history">
-              <Button variant="secondary" fullWidth>
-                Open history
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Contacts</h3>
-            <p className="flex-1 text-clay-muted">The people you have recently been in a session with.</p>
-            <Link to="/app/contacts">
-              <Button variant="secondary" fullWidth>
-                Open contacts
-              </Button>
-            </Link>
-          </Card>
-          <Card className="flex flex-col gap-3">
-            <h3 className="text-lg font-semibold text-clay-ink">Guided tour</h3>
-            <p className="flex-1 text-clay-muted">New here? A 30-second walk-through of the essentials.</p>
-            <Link to="/app/onboarding">
-              <Button variant="secondary" fullWidth>
-                Take the tour
-              </Button>
-            </Link>
-          </Card>
+      <section aria-labelledby="tools-heading" className="flex flex-col gap-5">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="tools-heading" className="text-xl font-bold sm:text-2xl">
+            Translation tools
+          </h2>
+          <span className="text-sm text-clay-muted">Everything runs in your browser</span>
         </div>
+        <ActionGrid cards={TOOL_CARDS} columns="sm:grid-cols-2" />
+      </section>
+
+      <section aria-labelledby="activity-heading" className="flex flex-col gap-5">
+        <h2 id="activity-heading" className="text-xl font-bold sm:text-2xl">
+          Your activity
+        </h2>
+        <ActionGrid cards={ACTIVITY_CARDS} columns="sm:grid-cols-3" />
       </section>
     </div>
   );

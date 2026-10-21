@@ -11,23 +11,26 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   fullWidth?: boolean;
 }
 
+/**
+ * Accessible button in the MissingWhisper design language: 2px shape borders,
+ * >=44px targets, accent fill with a dedicated on-accent ink token (never
+ * white-on-yellow), and danger rendered as an outline so colour is never the
+ * only signal — the label still says what it does.
+ */
 const variantClasses: Record<Variant, string> = {
-  primary: 'bg-clay-primary text-white shadow-clay hover:bg-clay-primary-dark',
-  secondary: 'bg-clay-surface text-clay-ink shadow-clay hover:shadow-clay-sm',
-  ghost: 'bg-transparent text-clay-primary hover:bg-clay-soft',
-  danger: 'bg-clay-danger text-white shadow-clay hover:brightness-95',
+  primary:
+    'border-clay-primary bg-clay-primary text-clay-primary-ink shadow-clay-sm hover:bg-clay-primary-dark hover:border-clay-primary-dark',
+  secondary: 'border-clay-edge bg-clay-surface text-clay-ink shadow-clay-sm hover:bg-clay-soft',
+  ghost: 'border-transparent bg-transparent text-clay-primary hover:bg-clay-primary/10',
+  danger: 'border-clay-danger bg-transparent text-clay-danger hover:bg-clay-danger/10',
 };
 
 const sizeClasses: Record<Size, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-5 text-base',
+  sm: 'h-10 px-3 text-sm',
+  md: 'h-12 px-5 text-base',
   lg: 'h-14 px-7 text-lg',
 };
 
-/**
- * Accessible claymorphism button (§7, §28). Large comfortable targets, visible
- * focus, loading state announced via aria-busy, disabled via aria-disabled.
- */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'primary', size = 'md', loading = false, fullWidth, className, children, disabled, ...rest },
   ref,
@@ -37,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={clsx(
-        'inline-flex items-center justify-center gap-2 rounded-clay font-semibold transition-transform duration-200 ease-clay',
+        'inline-flex items-center justify-center gap-2 rounded-clay border-2 font-bold transition-colors duration-200 ease-clay',
         'active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60',
         variantClasses[variant],
         sizeClasses[size],

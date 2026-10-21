@@ -89,7 +89,7 @@ export function Pipeline() {
               onChange={(e) => translation.setText(e.target.value)}
               rows={3}
               maxLength={4000}
-              className="rounded-clay border border-clay-edge bg-white px-3 py-2 text-clay-ink shadow-clay-inset focus:shadow-clay-focus focus:outline-none"
+              className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-3 py-2 text-clay-ink outline-none focus:border-clay-primary"
               placeholder="e.g. thank you please help me"
               aria-label="Phrase to translate"
             />
