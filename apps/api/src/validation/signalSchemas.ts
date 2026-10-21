@@ -172,6 +172,24 @@ export const avatarCommandSchema = z.object({
   commands: z.array(avatarAnimationCommandSchema).max(256),
 });
 
+export const gestureLandmarksSchema = z.object({
+  participantUserId: userId,
+  landmarks: z.array(z.any()).min(1).max(120),
+  clientTimestamp: z.number().optional(),
+});
+
+export const gestureDetectedSchema = z.object({
+  gestureId: z.string().min(1).max(64),
+  label: z.string().min(1).max(64),
+  confidence: z.number().min(0).max(1),
+  hands: z.array(z.enum(['left', 'right'])).max(2),
+  detectedAt: z.string().min(1).max(64),
+  breakdown: z.record(z.any()).optional(),
+  provider: z.string().max(64).optional(),
+  trained: z.boolean().optional(),
+  fromUserId: userId.optional(),
+});
+
 /** Map of relayed event name -> validator. Events not listed are rejected. */
 export const signalPayloadSchemas = {
   'webrtc:offer': webRtcOfferSchema,
@@ -188,6 +206,8 @@ export const signalPayloadSchemas = {
   'translation:started': translationStartedSchema,
   'translation:completed': translationCompletedSchema,
   'avatar:command': avatarCommandSchema,
+  'gesture:landmarks': gestureLandmarksSchema,
+  'gesture:detected': gestureDetectedSchema,
 } as const;
 
 export type ValidatedSignalEventName = keyof typeof signalPayloadSchemas;

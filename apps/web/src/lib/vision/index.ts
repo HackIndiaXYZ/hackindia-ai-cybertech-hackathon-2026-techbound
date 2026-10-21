@@ -12,3 +12,4 @@ export { GestureSequenceValidator, type SequenceValidatorOptions } from './seque
 export { MediaPipeHandTracker, type MediaPipeTrackerOptions } from './mediapipeAdapter.js';
 export { GestureRecognitionPipeline, type PipelineDeps, type PipelineEvents } from './pipeline.js';
 export { islEngineClient, type StaticPredictionResult, type DynamicPredictionResult, type TranslateResult } from './islEngineClient.js';
+export { IslEngineProvider, type IslEngineProviderOptions } from './islEngineProvider.js';

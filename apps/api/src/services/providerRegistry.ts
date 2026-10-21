@@ -34,6 +34,15 @@ const IMPLEMENTED: Record<ProviderStatus['capability'], Record<string, ProviderS
     },
   },
   vision: {
+    'isl-engine': {
+      implemented: true,
+      trained: true,
+      authoritative: true,
+      runsOn: 'server',
+      label: 'isl-engine',
+      message:
+        'Trained Dynamic Indian Sign Language neural network and hierarchical gating classifier on Python ML service.',
+    },
     isl: {
       implemented: true,
       trained: true,

@@ -35,7 +35,7 @@ import tempfile, traceback, shutil, subprocess, time, string, itertools, gc
 from collections import deque, Counter
 from typing import Dict, Any
 
-from fastapi import FastAPI, UploadFile, File, Request, HTTPException
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import gradio as gr
@@ -493,6 +493,165 @@ async def process_translate_endpoint(request: Request):
     except Exception as e:
         traceback.print_exc()
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+def parse_single_frame_to_154(frame):
+    """Parses a single frame of landmarks into the 154-dimensional vector."""
+    if isinstance(frame, (list, tuple)) and len(frame) == 154:
+        return np.array(frame, dtype=np.float32)
+    
+    vec = np.zeros(154, dtype=np.float32)
+    if isinstance(frame, dict):
+        left = frame.get('left') or frame.get('leftHand') or []
+        for i, pt in enumerate(left[:21]):
+            vec[i*3] = float(pt.get('x', 0.0) if isinstance(pt, dict) else pt[0])
+            vec[i*3 + 1] = float(pt.get('y', 0.0) if isinstance(pt, dict) else pt[1])
+            vec[i*3 + 2] = float(pt.get('z', 0.0) if isinstance(pt, dict) else (pt[2] if len(pt) > 2 else 0.0))
+        
+        right = frame.get('right') or frame.get('rightHand') or []
+        for i, pt in enumerate(right[:21]):
+            vec[63 + i*3] = float(pt.get('x', 0.0) if isinstance(pt, dict) else pt[0])
+            vec[63 + i*3 + 1] = float(pt.get('y', 0.0) if isinstance(pt, dict) else pt[1])
+            vec[63 + i*3 + 2] = float(pt.get('z', 0.0) if isinstance(pt, dict) else (pt[2] if len(pt) > 2 else 0.0))
+        
+        pose = frame.get('pose') or []
+        for i, pt in enumerate(pose[:7]):
+            vec[126 + i*4] = float(pt.get('x', 0.0) if isinstance(pt, dict) else pt[0])
+            vec[126 + i*4 + 1] = float(pt.get('y', 0.0) if isinstance(pt, dict) else pt[1])
+            vec[126 + i*4 + 2] = float(pt.get('z', 0.0) if isinstance(pt, dict) else (pt[2] if len(pt) > 2 else 0.0))
+            vec[126 + i*4 + 3] = float(pt.get('visibility', 1.0) if isinstance(pt, dict) else (pt[3] if len(pt) > 3 else 1.0))
+    elif isinstance(frame, (list, tuple)):
+        if len(frame) == 21 and isinstance(frame[0], dict):
+            for i, pt in enumerate(frame):
+                vec[63 + i*3] = float(pt.get('x', 0.0))
+                vec[63 + i*3 + 1] = float(pt.get('y', 0.0))
+                vec[63 + i*3 + 2] = float(pt.get('z', 0.0))
+        elif len(frame) <= 154:
+            vec[:len(frame)] = [float(x) for x in frame]
+    return vec
+
+def run_streaming_landmark_inference(landmark_frames):
+    """
+    Accepts landmark_frames of length T (list of 154-element arrays or dicts).
+    Resamples/interpolates to 30 frames x 154 dimensions.
+    Returns: { sign, group, confidence, breakdown: { gating, specialist, gating_probs, specialist_probs } }
+    """
+    from scipy.interpolate import interp1d
+    if not landmark_frames:
+        raise ValueError("Empty landmarks window")
+    
+    parsed_frames = [parse_single_frame_to_154(f) for f in landmark_frames]
+    arr = np.array(parsed_frames, dtype=np.float32)
+    T = arr.shape[0]
+
+    TARGET_T = 30
+    if T == 1:
+        arr = np.repeat(arr, TARGET_T, axis=0)
+    elif T != TARGET_T:
+        x_old = np.linspace(0, 1, T)
+        x_new = np.linspace(0, 1, TARGET_T)
+        interpolator = interp1d(x_old, arr, axis=0, kind='linear' if T > 1 else 'nearest', fill_value='extrapolate')
+        arr = interpolator(x_new)
+
+    dummy_frames = torch.zeros((TARGET_T, 3, 128, 128), dtype=torch.float32)
+    landmarks_tensor = torch.from_numpy(arr).float()
+
+    infer = get_dynamic_infer()
+    if infer is None:
+        raise RuntimeError("Dynamic hierarchical inference model is unavailable.")
+
+    word, group_predicted, overall_confidence, breakdown = infer.classifier.predict(
+        dummy_frames, landmarks_tensor, return_probabilities=True
+    )
+
+    gating_probs = breakdown.get('gating_probs')
+    specialist_probs = breakdown.get('specialist_probs')
+    gating_conf = float(gating_probs[group_predicted]) if gating_probs is not None else float(overall_confidence)
+    word_idx = int(np.argmax(specialist_probs)) if specialist_probs is not None else 0
+    specialist_conf = float(specialist_probs[word_idx]) if specialist_probs is not None else float(overall_confidence)
+
+    return {
+        "sign": str(word),
+        "group": int(group_predicted),
+        "confidence": float(overall_confidence),
+        "breakdown": {
+            "gating": gating_conf,
+            "specialist": specialist_conf,
+            "gating_probs": gating_probs.tolist() if gating_probs is not None else [],
+            "specialist_probs": specialist_probs.tolist() if specialist_probs is not None else []
+        }
+    }
+
+@app.post("/predict/landmarks")
+async def predict_landmarks_endpoint(request: Request):
+    """HTTP endpoint for landmark window prediction."""
+    try:
+        data = await request.json()
+        frames = data.get("landmarks") or data.get("frames") or []
+        if not frames:
+            return JSONResponse({"success": False, "error": "No landmarks provided"}, status_code=400)
+        res = run_streaming_landmark_inference(frames)
+        return {"success": True, **res}
+    except Exception as e:
+        traceback.print_exc()
+        return JSONResponse({"success": False, "error": str(e)}, status_code=500)
+
+@app.websocket("/ws/predict")
+async def websocket_predict_endpoint(websocket: WebSocket):
+    """
+    WebSocket streaming endpoint for rolling landmark windows.
+    Accepts JSON messages:
+      - {"type": "ping"} -> {"type": "pong", "timestamp": ...}
+      - {"type": "static", "landmarks": [...]} -> static prediction
+      - {"type": "landmarks"|"window", "landmarks": [...]} -> dynamic prediction
+    """
+    await websocket.accept()
+    try:
+        while True:
+            data = await websocket.receive_json()
+            if not isinstance(data, dict):
+                continue
+
+            msg_type = data.get("type", "window")
+            if msg_type == "ping":
+                await websocket.send_json({"type": "pong", "timestamp": time.time()})
+                continue
+
+            if msg_type == "static":
+                landmarks = data.get("landmarks", [])
+                label, conf, model_used = run_static_inference(landmarks)
+                await websocket.send_json({
+                    "success": True,
+                    "type": "static",
+                    "prediction": label,
+                    "confidence": float(conf),
+                    "model": model_used
+                })
+                continue
+
+            frames = data.get("landmarks") or data.get("frames") or []
+            if not frames:
+                await websocket.send_json({"success": False, "error": "No landmarks provided in window"})
+                continue
+
+            try:
+                res = run_streaming_landmark_inference(frames)
+                await websocket.send_json({
+                    "success": True,
+                    "type": "dynamic",
+                    "clientTimestamp": data.get("clientTimestamp"),
+                    **res
+                })
+            except Exception as infer_err:
+                await websocket.send_json({"success": False, "error": str(infer_err)})
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as ws_err:
+        try:
+            await websocket.send_json({"success": False, "error": str(ws_err)})
+        except Exception:
+            pass
+
 
 # ---------------------------------------------------------
 # Gradio UI Functions
