@@ -1,5 +1,6 @@
 # hackindia-ai-cybertech-hackathon-2026-techbound
-Hackathon team repository for TechBound - [hackindia-team:hackindia-ai-cybertech-hackathon-2026:techbound]
+Hackathon team repository for TechBound: [https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound](https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound)
+
 
 ---
 

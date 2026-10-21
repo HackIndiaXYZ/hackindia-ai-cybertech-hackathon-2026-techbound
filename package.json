@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "description": "ISL Real-Time Communication Platform — bidirectional Indian Sign Language <-> speech communication",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound.git"
+  },
+  "homepage": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound#readme",
+  "bugs": {
+    "url": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound/issues"
+  },
   "workspaces": [
     "apps/*",
     "packages/*",
