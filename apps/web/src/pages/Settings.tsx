@@ -1,7 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { ProviderStatus } from '@isl/shared-types';
 import { useAppDispatch, useAppSelector } from '../store/index.js';
-import { set, toggle, type SettingsState } from '../store/settingsSlice.js';
+import {
+  set,
+  toggle,
+  TEXT_SCALES,
+  THEMES,
+  type SettingsState,
+  type ThemeName,
+} from '../store/settingsSlice.js';
 import { Card, Button, Badge } from '../components/ui/index.js';
 import { fetchConsentState, setConsent } from '../lib/sessionRecord.js';
 import { fetchProviders } from '../lib/providers.js';
@@ -30,11 +37,11 @@ function ToggleRow({ setting, title, description }: ToggleRowProps) {
         role="switch"
         aria-checked={checked}
         onClick={() => dispatch(toggle(setting))}
-        className="relative h-9 w-16 shrink-0 rounded-pill bg-clay-soft shadow-clay-inset transition-colors"
+        className="relative h-9 w-16 shrink-0 rounded-pill border-2 border-clay-edge/70 bg-clay-soft transition-colors"
       >
         <span
           className={
-            'absolute top-1 h-7 w-7 rounded-full bg-clay-primary shadow-clay-sm transition-transform duration-200 ' +
+            'absolute top-1 h-7 w-7 rounded-full bg-clay-primary transition-transform duration-200 ' +
             (checked ? 'translate-x-8' : 'translate-x-1')
           }
           aria-hidden="true"
@@ -103,11 +110,11 @@ function ConsentSection() {
           aria-checked={granted === true}
           disabled={busy || granted === null}
           onClick={() => void handleChange(granted !== true)}
-          className="relative h-9 w-16 shrink-0 rounded-pill bg-clay-soft shadow-clay-inset transition-colors disabled:opacity-50"
+          className="relative h-9 w-16 shrink-0 rounded-pill border-2 border-clay-edge/70 bg-clay-soft transition-colors disabled:opacity-50"
         >
           <span
             className={
-              'absolute top-1 h-7 w-7 rounded-full bg-clay-primary shadow-clay-sm transition-transform duration-200 ' +
+              'absolute top-1 h-7 w-7 rounded-full bg-clay-primary transition-transform duration-200 ' +
               (granted === true ? 'translate-x-8' : 'translate-x-1')
             }
             aria-hidden="true"
@@ -193,10 +200,59 @@ function ProviderSection() {
 export function Settings() {
   const dispatch = useAppDispatch();
   const captionFontSize = useAppSelector((s) => s.settings.captionFontSize);
+  const theme = useAppSelector((s) => s.settings.theme);
+  const textScale = useAppSelector((s) => s.settings.textScale);
+
+  const selectClass =
+    'h-11 rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-3 font-semibold text-clay-ink';
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold text-clay-ink">Settings</h1>
+
+      <Card>
+        <h2 className="text-xl font-semibold text-clay-ink">Display</h2>
+        <p className="mt-1 text-sm text-clay-muted">
+          Four AAA-contrast palettes and text scaling up to 200%. Changes apply instantly and are saved
+          on this device.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-6">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="setting-theme" className="text-sm font-medium text-clay-ink">
+              Colour theme
+            </label>
+            <select
+              id="setting-theme"
+              className={selectClass}
+              value={theme}
+              onChange={(e) => dispatch(set({ theme: e.target.value as ThemeName }))}
+            >
+              {THEMES.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="setting-scale" className="text-sm font-medium text-clay-ink">
+              Text size
+            </label>
+            <select
+              id="setting-scale"
+              className={selectClass}
+              value={textScale}
+              onChange={(e) => dispatch(set({ textScale: Number(e.target.value) }))}
+            >
+              {TEXT_SCALES.map((s) => (
+                <option key={s} value={s}>
+                  {Math.round(s * 100)}%
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Card>
 
       <Card>
         <h2 className="text-xl font-semibold text-clay-ink">Accessibility</h2>
@@ -230,14 +286,17 @@ export function Settings() {
             step={1}
             value={captionFontSize}
             onChange={(e) => dispatch(set({ captionFontSize: Number(e.target.value) }))}
-            className="w-full accent-[#3b6ef5]"
+            className="w-full accent-[rgb(var(--clay-primary))]"
           />
         </div>
       </Card>
 
       <div>
-        <Button variant="ghost" onClick={() => dispatch(set({ captionFontSize: 18 }))}>
-          Reset to defaults
+        <Button
+          variant="ghost"
+          onClick={() => dispatch(set({ captionFontSize: 20, theme: 'night', textScale: 1 }))}
+        >
+          Reset display defaults
         </Button>
       </div>
     </div>

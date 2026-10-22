@@ -28,9 +28,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
         ref={ref}
         id={inputId}
         className={clsx(
-          'h-11 rounded-clay bg-clay-soft px-4 text-clay-ink shadow-clay-inset outline-none',
-          'placeholder:text-clay-muted focus:shadow-clay-focus',
-          error && 'ring-2 ring-clay-danger',
+          'h-12 rounded-clay border-2 border-clay-edge/70 bg-clay-soft px-4 text-clay-ink outline-none',
+          'placeholder:text-clay-muted focus:border-clay-primary',
+          error && 'border-clay-danger',
           className,
         )}
         aria-invalid={error ? true : undefined}

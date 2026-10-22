@@ -95,7 +95,7 @@ export function StandaloneTranslator() {
             role="status"
             aria-live="polite"
             className={clsx(
-              'flex min-h-[8rem] w-full items-start rounded-clay bg-white px-5 py-4 text-clay-ink shadow-clay-inset',
+              'flex min-h-[8rem] w-full items-start rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-5 py-4 text-clay-ink',
               t.eventMode ? 'min-h-[16rem] text-5xl leading-tight' : 'text-3xl leading-tight',
             )}
           >
@@ -240,7 +240,7 @@ function ModeControls({ t }: { t: ReturnType<typeof useStandaloneTranslator> }) 
   ];
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div role="group" aria-label="Input mode" className="inline-flex rounded-clay bg-clay-soft p-1 shadow-clay-inset">
+      <div role="group" aria-label="Input mode" className="inline-flex rounded-clay border-2 border-clay-edge/60 bg-clay-soft p-1">
         {modes.map((m) => (
           <button
             key={m.id}
@@ -250,7 +250,7 @@ function ModeControls({ t }: { t: ReturnType<typeof useStandaloneTranslator> }) 
             onClick={() => t.chooseInputMode(m.id)}
             className={clsx(
               'rounded-clay px-4 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-              t.inputMode === m.id ? 'bg-clay-primary text-white' : 'text-clay-ink hover:bg-white',
+              t.inputMode === m.id ? 'bg-clay-primary font-bold text-clay-primary-ink' : 'text-clay-ink hover:bg-clay-edge/30',
             )}
           >
             {m.label}
@@ -287,7 +287,7 @@ function PrimaryControls({
             onChange={(e) => t.setTypedText(e.target.value)}
             rows={2}
             maxLength={2000}
-            className="rounded-clay border border-clay-edge bg-white px-3 py-2 text-lg text-clay-ink shadow-clay-inset focus:shadow-clay-focus focus:outline-none"
+            className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-3 py-2 text-lg text-clay-ink outline-none focus:border-clay-primary"
             placeholder="e.g. thank you please help me"
             aria-label="Phrase to translate"
           />

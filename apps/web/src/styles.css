@@ -3,10 +3,122 @@
 @tailwind utilities;
 
 /* =========================================================================
-   Base + accessibility-first global styles (VIBECODER_MASTER_PLAN.md §7, §28)
+   MissingWhisper design system — accessible themes ported from the
+   missing-whisper-rebuild study (WCAG 2.1 AAA palettes, deaf-first UI).
+
+   Tokens are raw RGB triples so Tailwind can apply alpha modifiers
+   (e.g. bg-clay-primary/15). Switch palette with <html data-theme="…">:
+   night · daylight · yellow-max · sepia
    ========================================================================= */
-:root {
+
+/* ---------- NIGHT (default) — cream on near-black, yellow accent ---------- */
+:root,
+[data-theme='night'] {
+  --clay-bg: 14 17 22; /* near-black, low halation */
+  --clay-surface: 23 28 36; /* raised card */
+  --clay-soft: 30 37 48; /* inset / groove */
+  --clay-edge: 74 84 100; /* 3:1 UI outlines */
+  --clay-ink: 242 239 216; /* cream 14.9:1 */
+  --clay-muted: 176 181 171; /* secondary text ≥ 4.5:1 on both surfaces */
+  --clay-primary: 255 214 10; /* yellow 12.4:1 */
+  --clay-primary-ink: 14 17 22; /* label on accent fill */
+  --clay-primary-dark: 232 194 0;
+  --clay-info: 111 211 255; /* cyan — large text / surfaces */
+  --clay-talk: 255 166 77; /* peer is speaking */
+  --clay-accent: 94 226 154; /* success (always with ✓) */
+  --clay-warn: 255 191 71; /* warning (always with ▲) */
+  --clay-danger: 255 122 122; /* danger (always with ✕) */
+  --clay-focus: 255 255 255;
+  --clay-shadow: 0 0 0;
+  --base-size: 18px;
+  color-scheme: dark;
+}
+
+/* ---------- DAYLIGHT — near-black on warm white ---------- */
+[data-theme='daylight'] {
+  --clay-bg: 250 250 247;
+  --clay-surface: 255 255 255;
+  --clay-soft: 240 241 235;
+  --clay-edge: 92 97 105;
+  --clay-ink: 20 22 15;
+  --clay-muted: 84 88 78;
+  --clay-primary: 27 58 139; /* ink blue — accent fill w/ white label */
+  --clay-primary-ink: 255 255 255;
+  --clay-primary-dark: 20 45 110;
+  --clay-info: 13 91 119;
+  --clay-talk: 160 74 0;
+  --clay-accent: 20 96 46;
+  --clay-warn: 122 82 0;
+  --clay-danger: 161 26 26;
+  --clay-focus: 0 0 0;
+  --clay-shadow: 38 46 60;
+  --base-size: 18px;
   color-scheme: light;
+}
+
+/* ---------- YELLOW-MAX — classic low-vision preset, larger baseline ---------- */
+[data-theme='yellow-max'] {
+  --clay-bg: 0 0 0;
+  --clay-surface: 14 14 0;
+  --clay-soft: 26 26 0;
+  --clay-edge: 255 234 0;
+  --clay-ink: 255 234 0;
+  --clay-muted: 216 202 84;
+  --clay-primary: 255 234 0;
+  --clay-primary-ink: 0 0 0;
+  --clay-primary-dark: 219 199 0;
+  --clay-info: 255 224 102;
+  --clay-talk: 255 255 255;
+  --clay-accent: 182 255 114;
+  --clay-warn: 255 210 77;
+  --clay-danger: 255 158 158;
+  --clay-focus: 255 255 255;
+  --clay-shadow: 0 0 0;
+  --base-size: 21px;
+  color-scheme: dark;
+}
+
+/* ---------- SEPIA — photophobia / migraine friendly ---------- */
+[data-theme='sepia'] {
+  --clay-bg: 244 233 211;
+  --clay-surface: 251 243 226;
+  --clay-soft: 236 224 200;
+  --clay-edge: 107 91 65;
+  --clay-ink: 59 47 27;
+  --clay-muted: 90 74 48;
+  --clay-primary: 122 74 0;
+  --clay-primary-ink: 251 243 226;
+  --clay-primary-dark: 96 58 0;
+  --clay-info: 31 84 104;
+  --clay-talk: 138 75 18;
+  --clay-accent: 47 97 52;
+  --clay-warn: 130 93 0;
+  --clay-danger: 156 35 35;
+  --clay-focus: 36 27 13;
+  --clay-shadow: 105 88 58;
+  --base-size: 18px;
+  color-scheme: light;
+}
+
+/* High-contrast toggle: pure black canvas, white structure, yellow signal —
+   independent of the selected colour theme. */
+html[data-contrast='high'] {
+  --clay-bg: 0 0 0;
+  --clay-surface: 0 0 0;
+  --clay-soft: 18 18 18;
+  --clay-edge: 255 255 255;
+  --clay-ink: 255 255 255;
+  --clay-muted: 235 235 235;
+  --clay-primary: 255 234 0;
+  --clay-primary-ink: 0 0 0;
+  --clay-primary-dark: 224 204 0;
+  --clay-info: 255 234 0;
+  --clay-talk: 255 255 255;
+  --clay-accent: 182 255 114;
+  --clay-warn: 255 210 77;
+  --clay-danger: 255 158 158;
+  --clay-focus: 255 255 255;
+  --clay-shadow: 0 0 0;
 }
 
 @layer base {
@@ -15,31 +127,57 @@
   #root {
     height: 100%;
   }
+
   body {
     @apply bg-clay-bg text-clay-ink font-sans antialiased;
     margin: 0;
+    font-size: calc(var(--base-size) * var(--user-scale, 1));
+    line-height: 1.6;
+    letter-spacing: 0.015em;
+    /* Soft accent wash — depth without halation or clutter. */
+    background-image:
+      radial-gradient(1100px 520px at 85% -8%, rgb(var(--clay-primary) / 0.06), transparent 62%),
+      radial-gradient(900px 480px at -12% 8%, rgb(var(--clay-info) / 0.05), transparent 58%);
+    background-attachment: fixed;
   }
 
-  /* Always-visible, high-contrast keyboard focus (WCAG 2.4.7). */
+  /* Always-visible, high-contrast keyboard focus (WCAG 2.4.7 / AAA). */
   *:focus-visible {
-    outline: none;
-    box-shadow: theme('boxShadow.clay-focus');
+    outline: 3px solid rgb(var(--clay-focus));
+    outline-offset: 2px;
     border-radius: 0.5rem;
   }
 
   h1,
   h2,
   h3 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-tight text-clay-ink;
+    line-height: 1.25;
+  }
+
+  p,
+  li {
+    max-width: 72ch;
+  }
+
+  ::selection {
+    background: rgb(var(--clay-primary));
+    color: rgb(var(--clay-primary-ink));
+  }
+
+  * {
+    scrollbar-color: rgb(var(--clay-edge)) transparent;
+    scrollbar-width: thin;
   }
 }
 
 @layer components {
+  /* Raised surface card: border carries the shape cue, not colour alone. */
   .clay-surface {
-    @apply bg-clay-surface rounded-clay shadow-clay;
+    @apply rounded-clay border-2 border-clay-edge/70 bg-clay-surface shadow-clay;
   }
   .clay-inset {
-    @apply bg-clay-soft rounded-clay shadow-clay-inset;
+    @apply rounded-clay border-2 border-clay-edge/60 bg-clay-soft;
   }
   /* Inline loading spinner for buttons (referenced by Button.tsx). */
   .clay-spinner {
@@ -50,6 +188,19 @@
     border: 2px solid currentColor;
     border-right-color: transparent;
     animation: clay-spin 0.7s linear infinite;
+  }
+  /* Brand lockup: "Missing" in ink, "Whisper" in the accent hue. */
+  .brand-mark {
+    @apply inline-flex items-baseline gap-0.5 text-xl font-bold tracking-tight text-clay-ink;
+  }
+  .brand-mark > .hl {
+    @apply text-clay-primary;
+  }
+  /* Deaf-first caption slab: thick "live" bar, never audio-only. */
+  .caption-slab {
+    @apply rounded-clay border-2 border-clay-edge/60 border-l-4 border-l-clay-primary bg-clay-soft/70 px-5 py-4;
+    font-size: calc(var(--caption-font-size, 18px) * var(--user-scale, 1));
+    line-height: 1.5;
   }
 }
 
@@ -66,25 +217,13 @@
   top: 0;
   z-index: 100;
   padding: 0.75rem 1.25rem;
-  background: #3b6ef5;
-  color: #fff;
+  background: rgb(var(--clay-primary));
+  color: rgb(var(--clay-primary-ink));
+  font-weight: 700;
   border-radius: 0 0 0.75rem 0;
 }
 .skip-link:focus {
   left: 0;
-}
-
-/* High-contrast mode (user toggle -> [data-contrast="high"]). */
-[data-contrast='high'] {
-  --tw-shadow: 0 0 0 transparent;
-}
-[data-contrast='high'] body,
-[data-contrast='high'] .clay-surface,
-[data-contrast='high'] .clay-inset {
-  background: #ffffff !important;
-  color: #000000 !important;
-  box-shadow: none !important;
-  border: 2px solid #000000 !important;
 }
 
 /* Large-controls mode (user toggle -> [data-large-controls="true"]): enlarge
@@ -96,7 +235,7 @@
   min-height: 3rem;
 }
 [data-large-controls='true'] body {
-  font-size: 1.075rem;
+  font-size: calc(var(--base-size) * 1.07 * var(--user-scale, 1));
 }
 
 /* Honor prefers-reduced-motion (§7, §28) and the manual toggle. */
@@ -115,4 +254,13 @@
 [data-reduce-motion='true'] *::after {
   animation-duration: 0.001ms !important;
   transition-duration: 0.001ms !important;
+}
+
+/* Forced-colors (Windows high contrast) keeps structure legible. */
+@media (forced-colors: active) {
+  .clay-surface,
+  .clay-inset,
+  .caption-slab {
+    border-color: CanvasText;
+  }
 }
