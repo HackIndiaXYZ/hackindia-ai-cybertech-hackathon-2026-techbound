@@ -204,12 +204,13 @@ export async function createBabylonAvatarAdapter(
   const scene = new Scene(engine);
   scene.clearColor = new Color4(0.96, 0.95, 0.98, 1);
 
-  const camera = new ArcRotateCamera('avatar-camera', -Math.PI / 2, Math.PI / 2.6, 4.2, new Vector3(0, 1.1, 0), scene);
+  // Camera positioned at +Z (alpha = Math.PI / 2) so avatar faces forward towards the viewer.
+  const camera = new ArcRotateCamera('avatar-camera', Math.PI / 2, Math.PI / 2.6, 4.2, new Vector3(0, 1.1, 0), scene);
   camera.attachControl(canvas, true);
   if (options.attachCameraControls === false) camera.detachControl();
 
   new HemisphericLight('ambient', new Vector3(0, 1, 0), scene);
-  const key = new DirectionalLight('key', new Vector3(-0.4, -1, 0.6), scene);
+  const key = new DirectionalLight('key', new Vector3(-0.4, -1, -0.6), scene);
   key.intensity = 0.8;
 
   const frameListeners = new Set<(deltaMs: number) => void>();
