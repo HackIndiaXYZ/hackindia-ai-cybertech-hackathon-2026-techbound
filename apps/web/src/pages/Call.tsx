@@ -66,7 +66,7 @@ export function Call() {
 
   const gestureRec = useInCallGestureRecognition({
     stream: engine.localStream,
-    enabled: islRecognitionOn && call.state === 'connected' && call.cameraOn,
+    enabled: islRecognitionOn && !isNew && call.state !== 'idle' && call.state !== 'ended' && call.state !== 'failed' && call.cameraOn,
     emitLandmarks: engine.emitLandmarks,
   });
 
@@ -438,6 +438,8 @@ export function Call() {
         <div className="relative aspect-video overflow-hidden rounded-clay">
           <VideoTile
             stream={engine.localStream ?? undefined}
+            participant={roster.find((p) => p.userId === user?.id)}
+            cameraOn={call.cameraOn}
             isLocal
             mirror
             label={displayName}

@@ -59,7 +59,7 @@ export function createSyntheticVideoTrack(label = 'Audio Only (No physical camer
   const interval = setInterval(() => {
     phase += 0.2;
     render(phase);
-  }, 400);
+  }, 100);
 
   const stream = (canvas as HTMLCanvasElement & { captureStream?(fps?: number): MediaStream }).captureStream
     ? (canvas as HTMLCanvasElement & { captureStream(fps?: number): MediaStream }).captureStream(10)
@@ -121,80 +121,105 @@ export async function requestLocalMedia(constraints: MediaConstraints): Promise<
     };
   }
 
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: constraints.audio,
-      video: constraints.video ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' } : false,
-    });
-    return { stream, message: 'Camera and microphone ready.' };
-  } catch (err) {
-    const name = (err as DOMException)?.name ?? '';
-    if (name === 'NotAllowedError' || name === 'PermissionDenied') {
-      return {
-        failure: 'denied',
-        message: 'Permission was declined. Allow camera and microphone access in your browser to be seen and heard.',
-      };
+  const tryGUM = async (c: MediaStreamConstraints): Promise<MediaStream | null> => {
+    try {
+      return await navigator.mediaDevices.getUserMedia(c);
+    } catch {
+      return null;
     }
-    if (name === 'NotReadableError' || name === 'TrackStartError') {
-      return {
-        failure: 'unavailable',
-        message: 'Your camera or microphone is busy in another app. Close it and try again.',
-      };
-    }
+  };
 
-    // If both audio and video were requested and hardware is missing or overconstrained,
-    // attempt partial hardware recovery before failing (§28 graceful degradation):
-    if (constraints.audio && constraints.video) {
-      // 1. Try audio-only (e.g. desktop PC with microphone/headset but no webcam)
-      try {
-        const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        const syntheticVideo = createSyntheticVideoTrack('Audio Only (No physical camera)');
-        if (syntheticVideo) audioStream.addTrack(syntheticVideo);
+  // 1. Primary attempt: ideal resolution with flexible facingMode
+  if (constraints.video || constraints.audio) {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: constraints.audio,
+        video: constraints.video
+          ? {
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: { ideal: 'user' },
+            }
+          : false,
+      });
+      return { stream, message: 'Camera and microphone ready.' };
+    } catch (err) {
+      const name = (err as DOMException)?.name ?? '';
+      if (name === 'NotAllowedError' || name === 'PermissionDenied') {
+        if (constraints.allowSyntheticFallback) {
+          return {
+            stream: createSyntheticMediaStream(),
+            message: 'Camera permission was declined. Virtual media stream active.',
+          };
+        }
         return {
-          stream: audioStream,
-          message: 'Microphone connected (no physical camera detected; using virtual video tile).',
+          failure: 'denied',
+          message: 'Permission was declined. Allow camera and microphone access in your browser to be seen and heard.',
         };
-      } catch {
-        // audio alone was also not available
       }
-
-      // 2. Try video-only (e.g. webcam without microphone)
-      try {
-        const videoStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: false,
-        });
-        const silentAudio = createSilentAudioTrack();
-        if (silentAudio) videoStream.addTrack(silentAudio);
-        return {
-          stream: videoStream,
-          message: 'Camera connected (no microphone detected; muted).',
-        };
-      } catch {
-        // video alone was also not available
-      }
-    }
-
-    // 3. Fallback to synthetic media stream if explicitly allowed
-    if (constraints.allowSyntheticFallback) {
-      return {
-        stream: createSyntheticMediaStream(),
-        message: 'Virtual camera and microphone active (Demo Mode).',
-      };
-    }
-
-    switch (name) {
-      case 'NotFoundError':
-      case 'OverconstrainedError':
-      case 'DevicesNotFoundError':
+      if (name === 'NotReadableError' || name === 'TrackStartError') {
+        if (constraints.allowSyntheticFallback) {
+          return {
+            stream: createSyntheticMediaStream(),
+            message: 'Camera is busy in another app. Virtual media stream active.',
+          };
+        }
         return {
           failure: 'unavailable',
-          message: 'No camera or microphone was found. Connect a device or join using Demo/Virtual mode.',
+          message: 'Your camera or microphone is busy in another app. Close it and try again.',
         };
-      default:
-        return { failure: 'unknown', message: 'We could not start your camera or microphone. Please try again.' };
+      }
+
+      // If overconstrained by 1280x720 or facingMode, retry with unconstrained video
+      if (constraints.video && constraints.audio) {
+        const relaxed = await tryGUM({ audio: true, video: true });
+        if (relaxed) return { stream: relaxed, message: 'Camera and microphone ready.' };
+      } else if (constraints.video && !constraints.audio) {
+        const relaxedVideo = await tryGUM({ audio: false, video: true });
+        if (relaxedVideo) return { stream: relaxedVideo, message: 'Camera ready.' };
+      }
     }
   }
+
+  // 2. Partial hardware recovery (§28 graceful degradation):
+  // Check if physical camera alone is available (e.g. webcam with no mic or mic driver error)
+  if (constraints.video) {
+    const videoStream = await tryGUM({ video: true, audio: false });
+    if (videoStream) {
+      const silentAudio = createSilentAudioTrack();
+      if (silentAudio) videoStream.addTrack(silentAudio);
+      return {
+        stream: videoStream,
+        message: 'Camera connected (no microphone detected; muted).',
+      };
+    }
+  }
+
+  // Check if microphone alone is available (e.g. desktop PC / headset with no webcam or disconnected camera)
+  if (constraints.audio) {
+    const audioStream = await tryGUM({ audio: true, video: false });
+    if (audioStream) {
+      const syntheticVideo = createSyntheticVideoTrack('Audio Only (No physical camera)');
+      if (syntheticVideo) audioStream.addTrack(syntheticVideo);
+      return {
+        stream: audioStream,
+        message: 'Microphone connected (no physical camera detected; using virtual video tile).',
+      };
+    }
+  }
+
+  // 3. Fallback to synthetic media stream if explicitly allowed
+  if (constraints.allowSyntheticFallback) {
+    return {
+      stream: createSyntheticMediaStream(),
+      message: 'Virtual camera and microphone active (Demo Mode).',
+    };
+  }
+
+  return {
+    failure: 'unavailable',
+    message: 'No physical camera or microphone was found. Connect a device or join using Demo/Virtual mode.',
+  };
 }
 
 /** Stop every track on a stream (called on teardown). */

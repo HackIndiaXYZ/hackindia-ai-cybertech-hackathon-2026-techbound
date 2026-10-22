@@ -15,6 +15,8 @@ interface VideoTileProps {
    * the ring follows real microphone audio, never optimism.
    */
   active?: boolean;
+  /** Explicit camera-on state override (especially for local self-view) */
+  cameraOn?: boolean;
 }
 
 const qualityTone = {
@@ -35,16 +37,23 @@ const qualityTone = {
  * recovery situation — which bounded ICE-restart attempt is in flight, or
  * that attempts have honestly stopped — never a frozen frame pretending.
  */
-export function VideoTile({ stream, participant, isLocal, mirror, label, active = false }: VideoTileProps) {
+export function VideoTile({ stream, participant, isLocal, mirror, label, active = false, cameraOn: cameraOnProp }: VideoTileProps) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    if (el.srcObject !== (stream ?? null)) el.srcObject = stream ?? null;
+    if (el.srcObject !== (stream ?? null)) {
+      el.srcObject = stream ?? null;
+    }
+    if (stream) {
+      void el.play().catch(() => {
+        // Autoplay may be restricted by the browser until user interaction
+      });
+    }
   }, [stream]);
 
-  const cameraOn = participant ? participant.cameraOn : true;
+  const cameraOn = cameraOnProp !== undefined ? cameraOnProp : participant ? participant.cameraOn : true;
   const muted = participant ? participant.muted : false;
   const down = !!participant && (participant.status === 'disconnected' || participant.status === 'failed');
 
@@ -60,6 +69,9 @@ export function VideoTile({ stream, participant, isLocal, mirror, label, active 
         autoPlay
         playsInline
         muted={isLocal}
+        onLoadedMetadata={(e) => {
+          void e.currentTarget.play().catch(() => {});
+        }}
         aria-label={`${label} video`}
         className={clsx('h-full w-full object-cover', mirror && 'scale-x-[-1]', !cameraOn && 'opacity-0')}
       />

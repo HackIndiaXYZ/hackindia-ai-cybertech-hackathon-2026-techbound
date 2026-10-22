@@ -227,6 +227,9 @@ export function useCall({ sessionId, displayName, selfUserId }: UseCallArgs): Ca
     localStreamRef.current = media.stream;
     setLocalStream(media.stream);
     dispatch(mediaErrorSet(null));
+    if (media.message && !media.message.toLowerCase().includes('ready')) {
+      dispatch(noticeSet({ tone: 'warning', message: media.message }));
+    }
 
     // 2. Bootstrap the session over REST (join registers us + returns ICE + peers).
     let join: JoinSessionResponse;
