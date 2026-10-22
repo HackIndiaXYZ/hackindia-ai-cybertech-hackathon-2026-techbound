@@ -18,6 +18,7 @@ import { CaptionPanel } from '../components/call/CaptionPanel.js';
 import { SpeechControl } from '../components/call/SpeechControl.js';
 import { ParticipantsPanel } from '../components/call/ParticipantsPanel.js';
 import { TranslationPanel } from '../components/call/TranslationPanel.js';
+import { BidirectionalPipelineStatus } from '../components/call/BidirectionalPipelineStatus.js';
 import type { ParticipantUiState } from '../store/callSlice.js';
 
 function formatDuration(totalSec: number): string {
@@ -352,6 +353,50 @@ export function Call() {
       {call.persistence === 'off' && (
         <p className="text-xs text-clay-muted">Nothing from this call is being saved.</p>
       )}
+
+      {/* Phase 6 §29: Live Bidirectional Async Pipeline Indicators */}
+      <BidirectionalPipelineStatus
+        signState={
+          call.state === 'reconnecting'
+            ? 'reconnecting'
+            : !islRecognitionOn || call.state !== 'connected' || !call.cameraOn
+            ? 'idle'
+            : gestureRec.engineStatus === 'offline'
+            ? 'unavailable'
+            : gestureRec.engineStatus === 'fallback' || !gestureRec.trained
+            ? 'fallback'
+            : gestureRec.lastDetection && gestureRec.lastDetection.confidence < 0.6
+            ? 'low-confidence'
+            : gestureRec.active
+            ? gestureRec.lastDetection
+              ? 'processing'
+              : 'listening'
+            : 'idle'
+        }
+        signLatencyMs={gestureRec.latencyMs}
+        signEngineName={
+          gestureRec.engineStatus === 'fallback'
+            ? 'Heuristic HandShape (Fallback)'
+            : 'ISL Hierarchical Dual-Stream'
+        }
+        lastSignLabel={gestureRec.lastDetection?.label}
+        lastSignConfidence={gestureRec.lastDetection?.confidence}
+        speechState={
+          call.state === 'reconnecting'
+            ? 'reconnecting'
+            : !speech.supported || speech.status === 'unsupported' || !!speech.error
+            ? 'unavailable'
+            : speech.running || speech.status === 'listening'
+            ? user && captions.interim[user.id]
+              ? 'processing'
+              : 'listening'
+            : 'idle'
+        }
+        speechLatencyMs={speech.latency.startToFinalMs ?? speech.latency.startToFirstInterimMs ?? 0}
+        speechProviderName={speech.providerName}
+        avatarActive={showAvatar}
+        avatarPhase={avatar.phase}
+      />
 
       <div className={gridClassesFor(orderedRemotes.length + 1 + (showAvatar ? 1 : 0))}>
         <div className="relative aspect-video overflow-hidden rounded-clay">

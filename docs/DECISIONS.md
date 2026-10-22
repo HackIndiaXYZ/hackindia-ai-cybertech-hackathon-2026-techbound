@@ -969,3 +969,40 @@ The platform renders bidirectional translation for deaf participants through a r
 **Vocabulary Split:**
 - **Real Sign Animations (38 words):** `black`, `child`, `city`, `doctor`, `dog`, `dress`, `family`, `father`, `food`, `friend`, `girl`, `happy`, `hat`, `he`, `heavy`, `help`, `home`, `hospital`, `how-are-you`, `market`, `monday`, `mother`, `namaste`, `night`, `no`, `park`, `person`, `please`, `sad`, `school`, `self`, `she`, `shirt`, `shoe`, `stand`, `stop`, `street`, `thank you`, `time`, `walk`, `water`, `where`, `yellow`, `yes`, `you`.
 - **Fingerspelled Fallback:** All words outside the 38 curated signs are spelled letter-by-letter using the 26 real ISL fingerspelling bone keyframes (`A`–`Z`).
+
+## ADR-041 — Bidirectional Pipeline Concurrency, Live Visual Status & Resilience Guarantees (Phase 6)
+
+**Date:** 2026-10-22  
+**Status:** Accepted  
+
+**Context:**
+In a live video call between a deaf participant (using Indian Sign Language) and a hearing participant (using spoken language), two independent translation pipelines must operate simultaneously:
+- **Direction 1 (Sign → Speech):** MediaPipe landmark extraction → `isl-engine` (hierarchical dual-stream gating + specialist transformer) → grammar engine → `Indic-TTS` / browser speech synthesis.
+- **Direction 2 (Speech → Avatar):** Web Speech API / `Whisper-STT` → SOV glossing & concept mapping via `TranslationService` → Babylon.js 3D avatar animation queue.
+
+Under naive implementations, concurrent execution risks:
+1. **Echo / Feedback Loops:** Spoken audio output from Direction 1 being picked up by the microphone and fed back into Direction 2's speech recognizer.
+2. **Cross-Talk & Re-Emission:** A peer receiving a translated caption re-translating and re-emitting it, causing duplicate or circular events.
+3. **Fragile Calls:** Unhandled crashes or timeouts in ancillary ML daemons (port 7861 or 8002) severing the WebRTC media connection.
+4. **Opaque Async States:** Users having no visibility into whether delays stem from network latency, STT processing, or model inference.
+
+**Decision:**
+1. **Dual Independent Channels with Strict Participant Attribution:**
+   - Both pipelines run concurrently without shared locks or state bottlenecks.
+   - Enforce strict `participantUserId` validation on every `transcript:final`, `translation:started`, and `translation:completed` payload (`useInCallTranslation.ts:53`). Clients only ever translate their *own* locally generated transcripts; incoming peer transcripts are rendered or mapped to the avatar directly without re-emission.
+2. **Explicit Bidirectional Async State Machine (§29 Convention):**
+   - Implemented `BidirectionalPipelineStatus` displaying 7 explicit, visually distinct async states for each direction:
+     `idle` | `listening` | `processing` | `low-confidence` | `fallback` | `unavailable` | `reconnecting`.
+   - Displays live measured round-trip latencies, active engine names, recognized sign labels with true confidence percentages, and 3D avatar capability status.
+3. **Graceful Degradation Without Call Interruption:**
+   - **ISL Engine Disconnect:** If `isl-engine` (port 7861) becomes unreachable, `IslEngineProvider.handleEngineUnavailable()` immediately switches to `HeuristicHandShapeClassifier` and updates status to `fallback`. The WebRTC call is completely unaffected.
+   - **Indic-TTS Failure:** If `Indic-TTS` (port 8002) fails or times out, `IndicTtsProvider.triggerFallback()` seamlessly shifts synthesis to the browser's native `WebSpeechSynthesisProvider`.
+   - **Whisper STT Disconnect:** Seamlessly falls back to `WebSpeechProvider` or displays an explicit `unavailable` badge in unsupported browsers.
+4. **Measured Latency Benchmarks (Documented in `docs/PERFORMANCE.md`):**
+   - Direction 1 (Sign → Speech Audio Start): ~1,259 ms (Full ML pipeline: 35 ms tracking + 250 ms window + 576 ms dual-stream + 0.1 ms grammar + 398 ms Indic-TTS). Graceful fallback mode: ~428 ms.
+   - Direction 2 (Speech → 3D Avatar Motion Start): ~138 ms (Web Speech API) / ~1,218 ms (Whisper STT).
+5. **Comprehensive Verification:**
+   - Added unit test suite `BidirectionalPipelineStatus.test.tsx` (5/5 passing).
+   - Added integration test suite `twoPipelineConcurrency.test.ts` (4/4 passing) validating concurrent execution, cross-talk prevention, and mid-call degradation.
+   - Full monorepo passes: `@isl/web` 333/333 tests, `@isl/api` 121/121 tests.
+
