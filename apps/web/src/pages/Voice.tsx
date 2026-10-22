@@ -230,7 +230,7 @@ export function Voice() {
               value={tts.prefs.rate}
               onChange={(e) => tts.setProsody({ rate: Number(e.target.value) })}
               disabled={!caps.ratePitch}
-              className="w-full accent-[#3b6ef5] disabled:opacity-50"
+              className="w-full accent-[rgb(var(--clay-primary))] disabled:opacity-50"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -246,7 +246,7 @@ export function Voice() {
               value={tts.prefs.pitch}
               onChange={(e) => tts.setProsody({ pitch: Number(e.target.value) })}
               disabled={!caps.ratePitch}
-              className="w-full accent-[#3b6ef5] disabled:opacity-50"
+              className="w-full accent-[rgb(var(--clay-primary))] disabled:opacity-50"
             />
           </div>
         </div>
@@ -264,7 +264,7 @@ export function Voice() {
             value={tts.prefs.volume}
             onChange={(e) => tts.setVolume(Number(e.target.value))}
             disabled={!caps.volumeControl}
-            className="w-full accent-[#3b6ef5] disabled:opacity-50"
+            className="w-full accent-[rgb(var(--clay-primary))] disabled:opacity-50"
           />
         </div>
 
