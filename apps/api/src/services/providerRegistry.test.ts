@@ -34,11 +34,20 @@ describe('resolveProvider (pure)', () => {
   });
 
   it('an unimplemented flag value is unavailable, not quietly swapped', () => {
-    const p = resolveProvider('speech', 'whisper');
+    const p = resolveProvider('speech', 'deepgram');
     expect(p.implemented).toBe(false);
     expect(p.label).toBe('unavailable');
     expect(p.runsOn).toBe('none');
-    expect(p.message).toMatch(/whisper/);
+    expect(p.message).toMatch(/deepgram/);
+  });
+
+  it('speech whisper is the multilingual transformer model service', () => {
+    const p = resolveProvider('speech', 'whisper');
+    expect(p.implemented).toBe(true);
+    expect(p.trained).toBe(true);
+    expect(p.authoritative).toBe(true);
+    expect(p.runsOn).toBe('server');
+    expect(p.label).toBe('whisper-base');
   });
 
   it('capabilities do not share their value namespaces', () => {
@@ -56,6 +65,7 @@ describe('resolveProvider (pure)', () => {
     expect(p.label).toBe('indic-tts');
   });
 });
+
 
 describe('resolveProviders (live config)', () => {
   it('covers exactly the four capabilities', () => {

@@ -19,6 +19,9 @@ the config layer **refuses to start in production** on the in-memory fallback dr
 | migrate   | `apps/api/Dockerfile` (cmd) | —                    | One-shot `node apps/api/dist/infra/db/migrate.js`, exits on success. |
 | postgres  | `postgres:16-alpine`        | `5432:5432`          | Durable store (managed instance in real prod). |
 | redis     | `redis:7-alpine`            | `6379:6379`          | Ephemeral KV: refresh tokens, jti blocklist, rate-limit buckets, consent cache. |
+| isl-engine| `apps/isl-engine` python    | `7861:7861`          | ISL gesture recognition ML model (28 dynamic sign classes). |
+| indic-tts | `services/indic-tts` python | `8002:8002`          | Indic-TTS neural voice synthesis microservice (ADR-038). |
+| stt-whisper| `services/stt-whisper` python | `8003:8003`       | OpenAI Whisper multilingual speech-to-text microservice (ADR-039). |
 
 Boot order: `postgres`/`redis` become healthy → `migrate` runs and completes → `api`
 depends on `service_completed_successfully` → `web`. The API container runs as a

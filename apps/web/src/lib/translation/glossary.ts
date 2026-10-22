@@ -135,10 +135,25 @@ export const DEFAULT_GLOSSARY: readonly GlossaryEntry[] = Object.freeze([
   G('yellow', ['yellow', 'peela', 'pila', 'पीला'], 'yellow color', 'adjective', ['point'], 'neutral', 650),
   G('how-are-you', ['how are you', 'how r u', 'aap kaise hain', 'kya haal hai', 'आप कैसे हैं', 'क्या हाल है'], 'inquiry into well-being', 'politeness', ['sign-you', 'sign-where'], 'question', 900),
 
-  // Connectors
   G('and', ['and', 'aur', 'और'], 'addition', 'connector', ['open'], 'neutral', 500),
   G('but', ['but', 'lekin', 'par', 'लेकिन', 'पर'], 'contrast', 'connector', ['close'], 'neutral', 550),
+
+  // Extended ISL 28 Dynamic Vocabulary (Phase 4 scope)
+  G('girl', ['girl', 'ladki', 'kanya', 'लड़की', 'कन्या'], 'a female child / youth', 'noun', ['open'], 'affirmative', 750),
+  G('child', ['child', 'kid', 'children', 'bachha', 'bacha', 'बच्चा', 'बालक'], 'a young human', 'noun', ['point'], 'affirmative', 700),
+  G('dog', ['dog', 'kutta', 'kuttae', 'कुत्ता', 'श्वान'], 'a domestic canine', 'noun', ['close'], 'neutral', 700),
+  G('park', ['park', 'garden', 'bagicha', 'बगीचा', 'पार्क'], 'a public green space', 'place', ['open'], 'neutral', 800),
+  G('market', ['market', 'bazaar', 'bazar', 'बाज़ार', 'बाजार', 'मंडी'], 'a public marketplace', 'place', ['point'], 'neutral', 800),
+  G('city', ['city', 'town', 'shahar', 'nagar', 'शहर', 'नगर'], 'an urban municipality', 'place', ['open'], 'neutral', 850),
+  G('shirt', ['shirt', 'kameez', 'kamiz', 'कमीज़', 'शर्ट'], 'an upper body garment', 'noun', ['close'], 'neutral', 750),
+  G('dress', ['dress', 'clothes', 'clothing', 'kapde', 'कपड़े', 'पोशाक'], 'attire / clothing', 'noun', ['open'], 'neutral', 800),
+  G('hat', ['hat', 'cap', 'topi', 'टोपी'], 'headwear', 'noun', ['raise-right'], 'neutral', 700),
+  G('black', ['black', 'kaala', 'kala', 'काला'], 'black color', 'adjective', ['close'], 'neutral', 650),
+  G('heavy', ['heavy', 'bhaari', 'bhari', 'wazani', 'भारी', 'वज़नी'], 'great weight or burden', 'adjective', ['close'], 'emphasis', 750),
+  G('stand', ['stand', 'standing', 'khade', 'khada', 'खड़े', 'खड़ा'], 'to be on feet', 'verb', ['raise-right'], 'neutral', 750),
+  G('walk', ['walk', 'walking', 'chalo', 'chalna', 'चलो', 'चलना', 'घूमना'], 'to advance on foot', 'verb', ['raise-left'], 'neutral', 800),
 ]);
+
 
 /** concept id → entry, built once for O(1) lookups in tests / the UI legend. */
 export const GLOSSARY_BY_CONCEPT: Readonly<Record<string, GlossaryEntry>> = Object.freeze(

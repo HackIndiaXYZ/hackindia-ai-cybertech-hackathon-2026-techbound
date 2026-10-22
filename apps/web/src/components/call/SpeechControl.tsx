@@ -30,8 +30,11 @@ export function SpeechControl({ speech, largeControls }: SpeechControlProps) {
         <h2 id="speech-heading" className="text-lg font-semibold text-clay-ink">
           Live speech captions
         </h2>
-        <Badge tone={running ? 'info' : 'neutral'}>{`Provider: ${speech.providerName}`}</Badge>
+        <Badge tone={running ? 'info' : 'neutral'}>
+          {`Provider: ${speech.providerName === 'whisper' ? 'Whisper STT (Server)' : speech.providerName}`}
+        </Badge>
       </div>
+
 
       <div className="flex flex-wrap items-center gap-3">
         <Button

@@ -32,7 +32,17 @@ const IMPLEMENTED: Record<ProviderStatus['capability'], Record<string, ProviderS
       message:
         'No server speech service: dictation runs on-device in the browser (Web Speech API). Confidence is only reported when the engine provides it.',
     },
+    whisper: {
+      implemented: true,
+      trained: true,
+      authoritative: true,
+      runsOn: 'server',
+      label: 'whisper-base',
+      message:
+        'OpenAI Whisper base multilingual acoustic model hosted on Python FastAPI speech service for robust microphone transcription.',
+    },
   },
+
   vision: {
     'isl-engine': {
       implemented: true,

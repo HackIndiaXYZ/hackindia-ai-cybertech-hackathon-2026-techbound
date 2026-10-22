@@ -61,10 +61,23 @@ export function useSpeechRecognition(args: UseSpeechRecognitionArgs): SpeechReco
   const { selfUserId } = args;
   const dispatch = useAppDispatch();
 
-  const provider = useMemo(() => getSpeechProvider(args.providerName), [args.providerName]);
+  const provider = useMemo(() => {
+    const requested = getSpeechProvider(args.providerName);
+    if (requested && requested.isSupported()) {
+      return requested;
+    }
+    // Cross-browser fallback (ADR-039): If WebSpeech is unsupported (e.g. Firefox),
+    // use server Whisper STT if supported.
+    const whisper = getSpeechProvider('whisper');
+    if (whisper && whisper.isSupported()) {
+      return whisper;
+    }
+    return requested;
+  }, [args.providerName]);
   const providerName = provider?.name ?? args.providerName ?? 'webspeech';
   const supported = provider?.isSupported() ?? false;
   const keepsAudioOnDevice = provider?.keepsAudioOnDevice ?? false;
+
 
   const sessionRef = useRef<SpeechSession | null>(null);
   const runningRef = useRef(false);

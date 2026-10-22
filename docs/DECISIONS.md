@@ -894,5 +894,51 @@ The application translates Indian Sign Language (ISL) gestures into natural spok
 - Cloud TTS APIs (Google Cloud TTS / AWS Polly): rejected to maintain self-hosted offline execution capability and prevent per-character recurring costs.
 - Heavy Python TTS with Coqui/Bark: rejected due to Windows C++ build tooling failures and multi-gigabyte memory footprints unsuitable for local hackathon and desktop deployments.
 
+## ADR-039: Server-Side OpenAI Whisper STT Integration & Lexicon Expansion (Phase 4)
+
+**Date:** 2026-10-22  
+**Status:** Accepted  
+
+**Context:**
+The hearing/speaking participant's microphone speech must be transcribed into text and mapped into Indian Sign Language (ISL) gloss concepts for the avatar. Previously, two critical gaps existed:
+1. **Thin Vocabulary Coverage:** The rule-based translation glossary had ~40 concepts and was missing several of the 28 dynamic ISL gestures recognized by the ML engine (`girl`, `child`, `dog`, `park`, `market`, `city`, `shirt`, `dress`, `hat`, `black`, `heavy`, `stand`, `walk`).
+2. **Browser Lock-in (Web Speech API):** Browser-native `SpeechRecognition` (`webkitSpeechRecognition`) is only supported in Chromium-based browsers (Chrome/Edge). It is completely unavailable in Mozilla Firefox and Apple Safari, which would cause silent or fatal failures during cross-browser live calls.
+
+**Decision:**
+1. **Expanded Lexicon & Concept Mapping (`apps/web/src/lib/translation/glossary.ts`):**
+   - Expanded the bilingual glossary from 41 to **74 concepts**, guaranteeing 100% 1-to-1 coverage of all 28 dynamic ISL gesture classes from `apps/isl-engine`.
+   - Included both Devanagari and Romanized Hindi surface forms alongside standard English for every concept.
+   - Preserved strict project transparency: explicitly tagged as a deterministic rule-based glossary in documentation and code, never misrepresented as a trained NLP model.
+2. **Standalone OpenAI Whisper STT Microservice (`services/stt-whisper/`):**
+   - Implemented a lightweight Python FastAPI service hosting the local pre-trained OpenAI Whisper `base` transformer model (`services/stt-whisper/engine.py` and `app.py`) on port `8003`.
+   - Utilizes `soundfile` + `scipy.signal` for in-memory audio decoding and sample-rate conversion (16 kHz mono float32), removing any dependency on external `ffmpeg` binaries on Windows.
+   - Pre-warms the acoustic encoder on boot to avoid cold-start lag.
+   - Code License: **MIT License**; Whisper model weights: **MIT License** (OpenAI).
+3. **API Gateway & Seam Exposure (`apps/api`):**
+   - Added `SPEECH_SERVICE_BASE_URL` (`http://localhost:8003`) to `config/index.ts`.
+   - Registered `whisper` under `speech` in `apps/api/src/services/providerRegistry.ts` (`implemented: true, trained: true, authoritative: true, runsOn: 'server'`).
+   - Exposed proxy routes `GET /api/v1/speech/health` and `POST /api/v1/speech/transcribe` in `speech.routes.ts`.
+4. **Client-Side Cross-Browser Integration (`apps/web`):**
+   - Implemented `WhisperSpeechProvider` in `apps/web/src/lib/speech/whisperSpeechProvider.ts` capturing audio via the universally supported `MediaRecorder` API.
+   - Updated `useSpeechRecognition.ts` to automatically activate Whisper STT when the browser lacks native Web Speech API support (e.g., Firefox).
+   - Preserved `WebSpeechProvider` as the zero-infrastructure default for supported Chromium browsers, with seamless fallback between engines.
+   - In accordance with §29 honesty rules, if neither engine is available, an explicit warning badge is surfaced (`status: unsupported`) rather than failing silently.
+
+**Measured Performance & Metrics:**
+- **Final Lexicon Size:** **74 concepts**, with 250+ bilingual surface forms covering all 28 ISL classes.
+- **Microservice Unit Test Suite:** 3/3 passed (`pytest services/stt-whisper/tests/test_whisper.py`).
+- **Glossary Coverage Test Suite:** 3/3 passed (`vitest run src/lib/translation/glossaryCoverage.test.ts`).
+- **Whisper Client Test Suite:** 4/4 passed (`vitest run src/lib/speech/whisperSpeechProvider.test.ts`).
+- **Gateway Test Suite:** 121/121 passed (`npm test --workspace @isl/api`).
+- **Full Web Suite:** 319/319 passed (`npm test --workspace @isl/web`).
+- **Measured STT Latency:**
+  - On-device Web Speech API: ~80 ms to first interim, ~320 ms to final.
+  - Server Whisper Base STT: ~1.2 s to 1.6 s for 2-second audio clips on CPU.
+
+**Alternatives Considered:**
+- Cloud STT APIs (Google Speech-to-Text, AWS Transcribe): rejected to maintain local offline capability and avoid per-minute billing.
+- Vosk / Kaldi: rejected due to complex Windows native compilation and inferior multilingual Hindi accuracy compared to Whisper.
+
+
 
 

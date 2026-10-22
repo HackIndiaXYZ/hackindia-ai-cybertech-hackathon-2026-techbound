@@ -15,9 +15,12 @@ export {
 } from './latency.js';
 export { speechFailure, classifySpeechError, classifyMediaFailure } from './errors.js';
 export { WebSpeechProvider, isWebSpeechSupported } from './webSpeechProvider.js';
+export { WhisperSpeechProvider, type WhisperSpeechProviderOptions } from './whisperSpeechProvider.js';
 export {
   getSpeechProvider,
   registerSpeechProvider,
+  setActiveSpeechProvider,
   currentProviderName,
   availableProviders,
 } from './providerRegistry.js';
+

@@ -64,8 +64,9 @@ const EnvSchema = z.object({
   TURN_CREDENTIAL: z.string().default(''),
 
   SPEECH_PROVIDER: z.string().default('stub'),
-  SPEECH_SERVICE_BASE_URL: z.string().default('http://localhost:8001'),
+  SPEECH_SERVICE_BASE_URL: z.string().default('http://localhost:8003'),
   VISION_PROVIDER: z.string().default('mediapipe'),
+
   TRANSLATION_PROVIDER: z.string().default('rulebased'),
   TTS_PROVIDER: z.string().default('stub'),
   TTS_SERVICE_BASE_URL: z.string().default('http://localhost:8002'),
@@ -179,8 +180,10 @@ export const config = Object.freeze({
     islEngineWsUrl: env.ISL_ENGINE_WS_URL,
   },
   ttsServiceBaseUrl: env.TTS_SERVICE_BASE_URL,
+  speechServiceBaseUrl: env.SPEECH_SERVICE_BASE_URL,
   islEngineBaseUrl: env.ISL_ENGINE_BASE_URL,
   islEngineWsUrl: env.ISL_ENGINE_WS_URL,
+
 
   privacy: {
     recordingConsentRequired: env.RECORDING_CONSENT_REQUIRED,

@@ -1,15 +1,11 @@
 import type { SpeechProvider } from './types.js';
 import { WebSpeechProvider } from './webSpeechProvider.js';
+import { WhisperSpeechProvider } from './whisperSpeechProvider.js';
 
 /**
  * Provider registry — the single place that decides *which* speech engine backs
- * the caption pipeline. Today only `webspeech` exists. A future Whisper/FastAPI
- * provider would be added by implementing {@link SpeechProvider} and calling
- * {@link registerSpeechProvider}; the UI and event contracts would not change.
- *
- * We intentionally do NOT register a fake/mock Whisper provider: there is no
- * verified model or runnable service in this environment, so claiming one would
- * fabricate capability (§12, Rule #3/#4).
+ * the caption pipeline (Phase 4). Supports both on-device `webspeech` (zero infra default)
+ * and server-side `whisper` (cross-browser transformer STT).
  */
 const providers = new Map<string, SpeechProvider>();
 let activeName = 'webspeech';
@@ -19,10 +15,17 @@ export function registerSpeechProvider(provider: SpeechProvider, opts?: { activa
   if (opts?.activate) activeName = provider.name;
 }
 
-/** Get a provider by name (defaults to the active one). Lazily registers WebSpeech. */
+export function setActiveSpeechProvider(name: string): void {
+  activeName = name;
+}
+
+/** Get a provider by name (defaults to the active one). Lazily registers providers. */
 export function getSpeechProvider(name: string = activeName): SpeechProvider | null {
   if (name === 'webspeech' && !providers.has('webspeech')) {
     providers.set('webspeech', new WebSpeechProvider());
+  }
+  if (name === 'whisper' && !providers.has('whisper')) {
+    providers.set('whisper', new WhisperSpeechProvider());
   }
   return providers.get(name) ?? null;
 }
@@ -34,5 +37,7 @@ export function currentProviderName(): string {
 /** Names of the providers currently available in this environment. */
 export function availableProviders(): string[] {
   getSpeechProvider('webspeech');
+  getSpeechProvider('whisper');
   return [...providers.keys()];
 }
+

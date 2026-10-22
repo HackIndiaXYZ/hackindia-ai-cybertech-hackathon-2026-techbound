@@ -291,5 +291,48 @@ Endpoints & Contracts:
 - `POST /api/v1/tts/synthesize` (`apps/api`): authenticated and rate-limited gateway proxy.
 - `IndicTtsProvider` (`apps/web`): client-side provider with `onFallbackChange` callback surfacing fallback state badges to users.
 
+### 8.4 OpenAI Whisper Multilingual STT & Lexicon Pipeline (Phase 4)
+
+Microphone dictation during calls captures speech and maps it into ISL gloss concepts for avatar rendering with cross-browser resilience:
+
+```
+┌─────────────────────────────────┐
+│ User Microphone (Browser)       │
+│ - MediaRecorder / WebSpeech API │
+└────────────────┬────────────────┘
+                 │ (if Firefox/Safari or server mode)
+                 │ POST multipart/form-data audio/webm
+                 ▼
+┌─────────────────────────────────┐
+│ API Gateway (apps/api)          │
+│ - /api/v1/speech/transcribe     │
+│ - Zero-copy stream relay        │
+└────────────────┬────────────────┘
+                 │ POST http://localhost:8003/transcribe
+                 ▼
+┌─────────────────────────────────┐
+│ Whisper STT Service (FastAPI)   │
+│ - Pre-warmed Whisper Base model │
+│ - Soundfile + Scipy resampler   │
+│ - Multilingual transformer      │
+└────────────────┬────────────────┘
+                 │ 200 OK { text, language, latency_ms }
+                 ▼
+┌─────────────────────────────────┐
+│ Concept Mapper (apps/web)       │
+│ - 74-concept bilingual glossary │
+│ - Greedy longest-match parser   │
+│ - Maps to ISL avatar gestures   │
+└─────────────────────────────────┘
+```
+
+Endpoints & Contracts:
+- `POST /transcribe` (`services/stt-whisper/`): accepts audio file, returns `{ text, language, latency_ms, model }`.
+- `GET /health` (`services/stt-whisper/`): exposes health and supported multilingual models.
+- `POST /api/v1/speech/transcribe` (`apps/api`): authenticated streaming proxy to Whisper.
+- `WhisperSpeechProvider` (`apps/web`): cross-browser STT provider using MediaRecorder and automatic fallback.
+- `DEFAULT_GLOSSARY` (`apps/web/src/lib/translation/glossary.ts`): 74-concept lexicon with 100% 28-class ISL coverage.
+
+
 
 

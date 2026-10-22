@@ -7,6 +7,7 @@ import { sessionsRouter } from './sessions.routes.js';
 import { miscRouter } from './misc.routes.js';
 import { islRouter } from './isl.routes.js';
 import { ttsRouter } from './tts.routes.js';
+import { speechRouter } from './speech.routes.js';
 
 /** /api/v1 root router (plan §23 versioned APIs). */
 export const v1Router = Router();
@@ -40,6 +41,8 @@ v1Router.get('/', (_req, res) => {
         '/api/v1/tts/health',
         '/api/v1/tts/voices',
         '/api/v1/tts/synthesize',
+        '/api/v1/speech/health',
+        '/api/v1/speech/transcribe',
       ],
     },
   });
@@ -52,5 +55,7 @@ v1Router.use('/users', usersRouter);
 v1Router.use('/sessions', sessionsRouter);
 v1Router.use('/isl', islRouter);
 v1Router.use('/tts', ttsRouter);
+v1Router.use('/speech', speechRouter);
 // miscRouter defines /messages, /transcripts, /translations, /gestures, /feedback, /consent
 v1Router.use('/', miscRouter);
+
