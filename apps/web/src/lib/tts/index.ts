@@ -13,9 +13,12 @@ export { DEFAULT_PROSODY, clampProsody, resolveProsody, effectiveVolume } from '
 export { resolveVoice, hasPreferredLang, describeGenderAge, type VoiceSelection } from './voiceSelection.js';
 export { TtsController, type TtsControllerOptions } from './ttsController.js';
 export { WebSpeechSynthesisProvider, isSpeechSynthesisSupported } from './webSpeechSynthesisProvider.js';
+export { IndicTtsProvider, type IndicTtsProviderOptions } from './indicTtsProvider.js';
 export {
   getTtsProvider,
   registerTtsProvider,
+  setActiveTtsProvider,
   currentTtsProviderName,
   availableTtsProviders,
 } from './providerRegistry.js';
+

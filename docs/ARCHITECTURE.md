@@ -249,4 +249,47 @@ Endpoints providing sentence formation:
 - WebSocket `/ws/predict` (FastAPI): accepts `{ type: "sentence", glosses: [...] }`.
 - `POST /api/v1/isl/format_sentence` (Express API) proxies to the ML engine via `islEngineBridge.formatSentence()`.
 
+### 8.3 AI4Bharat Indic-TTS Regional Neural Synthesis Pipeline (Phase 3)
+
+Spoken output converts translated ISL sentences into natural Indian regional speech using the AI4Bharat Indic-TTS architecture (FastPitch acoustic model + HiFi-GAN neural vocoder) with visible browser fallback:
+
+```
+┌─────────────────────────────────┐
+│ Formed / Translated Sentence   │
+│ (Hindi, Marathi, English, etc.) │
+└────────────────┬────────────────┘
+                 │ POST /api/v1/tts/synthesize
+                 ▼
+┌─────────────────────────────────┐
+│ API Gateway (apps/api)          │
+│ - Validates schema & headers    │
+│ - Proxies to TTS microservice   │
+│ - Attaches X-Latency-Ms header  │
+└────────────────┬────────────────┘
+                 │ POST http://localhost:8002/synthesize
+                 ▼
+┌─────────────────────────────────┐
+│ Indic-TTS Service (FastAPI)     │
+│ - Pre-warmed FastPitch acoustic │
+│ - HiFi-GAN vocoder pipeline     │
+│ - 24 kHz 16-bit PCM WAV stream  │
+└────────────────┬────────────────┘
+                 │ 200 OK (audio/wav)
+                 ▼
+┌─────────────────────────────────┐
+│ Client Player (apps/web)        │
+│ - IndicTtsProvider              │
+│ - HTML5 Audio streaming player  │
+│ - ADR-038 visible fallback to   │
+│   WebSpeechSynthesis on error   │
+└─────────────────────────────────┘
+```
+
+Endpoints & Contracts:
+- `POST /synthesize` (`services/tts-indic/`): accepts `{ text, lang, gender, voiceId }`, returns streamed `audio/wav` (24 kHz, 16-bit PCM).
+- `GET /health` & `GET /voices`: exposes service status, supported Indian regional languages, and pre-warmed voice models.
+- `POST /api/v1/tts/synthesize` (`apps/api`): authenticated and rate-limited gateway proxy.
+- `IndicTtsProvider` (`apps/web`): client-side provider with `onFallbackChange` callback surfacing fallback state badges to users.
+
+
 

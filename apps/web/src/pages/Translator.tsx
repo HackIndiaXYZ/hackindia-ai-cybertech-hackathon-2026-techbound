@@ -162,7 +162,24 @@ export function Translator() {
           {vision.trainedDetection && (
             <Badge tone="info">ISL Sign: {vision.trainedDetection.label} ({pct(vision.trainedDetection.confidence)})</Badge>
           )}
+          {tts.isFallback ? (
+            <span title={tts.fallbackReason ?? undefined}>
+              <Badge tone="warning">
+                TTS: Browser Fallback (SpeechSynthesis)
+              </Badge>
+            </span>
+          ) : tts.providerName === 'indic-tts' ? (
+
+            <Badge tone="success">
+              TTS: AI4Bharat Indic-TTS (Neural)
+            </Badge>
+          ) : (
+            <Badge tone="neutral">
+              TTS: {tts.providerName}
+            </Badge>
+          )}
         </div>
+
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.4fr_1fr]">

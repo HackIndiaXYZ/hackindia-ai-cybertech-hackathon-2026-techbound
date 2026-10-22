@@ -68,6 +68,7 @@ const EnvSchema = z.object({
   VISION_PROVIDER: z.string().default('mediapipe'),
   TRANSLATION_PROVIDER: z.string().default('rulebased'),
   TTS_PROVIDER: z.string().default('stub'),
+  TTS_SERVICE_BASE_URL: z.string().default('http://localhost:8002'),
   ISL_ENGINE_BASE_URL: z.string().default('http://localhost:7861'),
   ISL_ENGINE_WS_URL: z.string().default('ws://localhost:7861/ws/predict'),
 
@@ -173,9 +174,11 @@ export const config = Object.freeze({
     vision: env.VISION_PROVIDER,
     translation: env.TRANSLATION_PROVIDER,
     tts: env.TTS_PROVIDER,
+    ttsServiceBaseUrl: env.TTS_SERVICE_BASE_URL,
     islEngineBaseUrl: env.ISL_ENGINE_BASE_URL,
     islEngineWsUrl: env.ISL_ENGINE_WS_URL,
   },
+  ttsServiceBaseUrl: env.TTS_SERVICE_BASE_URL,
   islEngineBaseUrl: env.ISL_ENGINE_BASE_URL,
   islEngineWsUrl: env.ISL_ENGINE_WS_URL,
 

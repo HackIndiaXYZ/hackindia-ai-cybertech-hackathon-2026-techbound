@@ -80,9 +80,10 @@ islRouter.post(
       const fetchOptions: RequestInit & { duplex?: string } = {
         method: 'POST',
         headers: contentType ? { 'Content-Type': contentType } : {},
-        body: Readable.toWeb(req) as unknown as BodyInit,
+        body: Readable.toWeb(req) as unknown as RequestInit['body'],
         duplex: 'half',
       };
+
       const resp = await fetch(`${config.islEngineBaseUrl}/predict/dynamic`, fetchOptions);
 
       const data = await resp.json();
