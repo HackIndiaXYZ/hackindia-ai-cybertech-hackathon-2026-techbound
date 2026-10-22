@@ -6,6 +6,7 @@ import { createSession, useCall } from '../features/useCall.js';
 import { useSpeechRecognition } from '../features/useSpeechRecognition.js';
 import { useInCallTranslation } from '../features/useInCallTranslation.js';
 import { useAvatar } from '../features/useAvatar.js';
+import { useInCallGestureRecognition } from '../features/useInCallGestureRecognition.js';
 import { isWebRtcSupported } from '../lib/webrtc/peer.js';
 import { isMediaSupported } from '../lib/webrtc/media.js';
 import { gridClassesFor, orderedRemoteTiles } from '../lib/call/gridLayout.js';
@@ -54,10 +55,17 @@ export function Call() {
   const [busy, setBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [showAvatar, setShowAvatar] = useState(false);
+  const [islRecognitionOn, setIslRecognitionOn] = useState(true);
 
   const avatar = useAvatar();
 
   const engine = useCall({ sessionId: effectiveId, displayName, selfUserId: user?.id ?? '' });
+
+  const gestureRec = useInCallGestureRecognition({
+    stream: engine.localStream,
+    enabled: islRecognitionOn && call.state === 'connected' && call.cameraOn,
+    emitLandmarks: engine.emitLandmarks,
+  });
 
   // Sync completed in-call translations to 3D avatar interpreter in real-time
   const lastProcessedTranslationRef = useRef<string | null>(null);
@@ -276,6 +284,14 @@ export function Call() {
         <div className="flex items-center gap-4">
           <Button
             size="sm"
+            variant={islRecognitionOn ? 'primary' : 'secondary'}
+            onClick={() => setIslRecognitionOn((prev) => !prev)}
+            aria-pressed={islRecognitionOn}
+          >
+            {islRecognitionOn ? '🤟 ISL Recognition ON' : '🤟 Enable ISL Recognition'}
+          </Button>
+          <Button
+            size="sm"
             variant={showAvatar ? 'primary' : 'secondary'}
             onClick={() => setShowAvatar((prev) => !prev)}
             aria-pressed={showAvatar}
@@ -338,13 +354,28 @@ export function Call() {
       )}
 
       <div className={gridClassesFor(orderedRemotes.length + 1 + (showAvatar ? 1 : 0))}>
-        <VideoTile
-          stream={engine.localStream ?? undefined}
-          isLocal
-          mirror
-          label={displayName}
-          active={!!user && !!activeSpeaker.speaking[user.id]}
-        />
+        <div className="relative aspect-video overflow-hidden rounded-clay">
+          <VideoTile
+            stream={engine.localStream ?? undefined}
+            isLocal
+            mirror
+            label={displayName}
+            active={!!user && !!activeSpeaker.speaking[user.id]}
+          />
+          {islRecognitionOn && (
+            <canvas
+              ref={gestureRec.canvasRef}
+              className="pointer-events-none absolute inset-0 h-full w-full object-cover scale-x-[-1]"
+            />
+          )}
+          {islRecognitionOn && gestureRec.lastDetection && (
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 rounded bg-black/75 px-2.5 py-1 text-xs font-semibold text-white shadow backdrop-blur-sm">
+              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>ISL: {gestureRec.lastDetection.label}</span>
+              <span className="text-emerald-300">({Math.round(gestureRec.lastDetection.confidence * 100)}%)</span>
+            </div>
+          )}
+        </div>
         {showAvatar && (
           <div className="clay-surface relative flex aspect-video flex-col overflow-hidden rounded-clay bg-clay-soft">
             <canvas ref={avatar.canvasRef} className="h-full w-full" />

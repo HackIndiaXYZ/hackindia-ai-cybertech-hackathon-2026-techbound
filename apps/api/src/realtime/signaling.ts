@@ -20,6 +20,7 @@ import {
   moderateParticipant,
   setSessionHost,
 } from '../services/sessionService.js';
+import { islEngineBridge } from '../services/islEngineBridge.js';
 
 /**
  * Socket.io signaling skeleton (plan §11 item 3, §24 event contracts).
@@ -132,6 +133,51 @@ export function attachSignaling(httpServer: HttpServer): Server {
     relayRoom(socket, SignalEvent.TextMessage);
     relayRoom(socket, SignalEvent.GestureDetected);
     relayRoom(socket, SignalEvent.GestureSequence);
+
+    // Phase 1: Real-time ISL landmark streaming to isl-engine hierarchical models.
+    // Client streams MediaPipe hands landmarks over Socket.io relay without raw video egress.
+    socket.on(SignalEvent.GestureLandmarks, async (raw: unknown) => {
+      const sessionId = (socket.data as SocketData).sessionId;
+      if (!sessionId) return;
+      const data = socket.data as SocketData;
+      const payload = validateOrError(socket, SignalEvent.GestureLandmarks, raw, sessionId, data.userId);
+      if (!payload) return;
+
+      const { participantUserId, landmarks, clientTimestamp } = payload as {
+        participantUserId: string;
+        landmarks: unknown[];
+        clientTimestamp?: number;
+      };
+
+      try {
+        const prediction = await islEngineBridge.predictLandmarks(landmarks, clientTimestamp);
+        if (prediction && prediction.sign && prediction.confidence > 0) {
+          const detectedPayload = {
+            gestureId: prediction.sign,
+            label: prediction.sign,
+            confidence: prediction.confidence,
+            hands: ['right' as const],
+            detectedAt: new Date().toISOString(),
+            fromUserId: participantUserId,
+            breakdown: {
+              gating: prediction.breakdown?.gating ?? 0,
+              specialist: prediction.breakdown?.specialist ?? 0,
+              group: prediction.group,
+              latencyMs: prediction.latencyMs,
+              clientTimestamp,
+            },
+            provider: 'isl-engine-hierarchical',
+            trained: true,
+          };
+
+          // Broadcast prediction to the whole room (including sender)
+          io.to(sessionId).emit(SignalEvent.GestureDetected, envelope(sessionId, detectedPayload));
+          countSignalingEvent(SignalEvent.GestureDetected);
+        }
+      } catch (err) {
+        logger.warn('gesture_prediction_failed', { sessionId, error: String(err) });
+      }
+    });
     // Interim captions are high-frequency and replaceable: throttle per socket.
     relayRoom(socket, SignalEvent.TranscriptPartial, { limitPerSec: 20 });
     relayRoom(socket, SignalEvent.TranscriptFinal);

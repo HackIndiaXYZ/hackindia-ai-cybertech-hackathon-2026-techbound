@@ -110,4 +110,41 @@ describe('ISL proxy routes (/api/v1/isl)', () => {
       expect(res.body.error.code).toBe('BAD_REQUEST');
     });
   });
+
+  describe('POST /api/v1/isl/format_sentence', () => {
+    it('formats gloss sequence into grammatical sentence and returns translation', async () => {
+      const mockResult = {
+        success: true,
+        formed_sentence: 'I go to school on Monday.',
+        translated_sentence: 'मैं सोमवार को स्कूल जाता हूँ।',
+        is_rule_based: true,
+      };
+
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+        new Response(JSON.stringify(mockResult), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const res = await request(app)
+        .post('/api/v1/isl/format_sentence')
+        .send({ glosses: ['I', 'School', 'Monday'], language: 'hi' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.formed_sentence).toBe('I go to school on Monday.');
+      expect(res.body.data.is_rule_based).toBe(true);
+
+      fetchSpy.mockRestore();
+    });
+
+    it('returns 400 when glosses or sentence parameter is missing', async () => {
+      const res = await request(app)
+        .post('/api/v1/isl/format_sentence')
+        .send({ language: 'hi' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe('BAD_REQUEST');
+    });
+  });
 });

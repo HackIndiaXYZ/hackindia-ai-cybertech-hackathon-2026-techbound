@@ -42,7 +42,10 @@ export interface TtsApi {
   failure: TtsFailure | null;
   metrics: TtsMetricsSnapshot;
   prefs: VoiceSettingsState;
+  isFallback: boolean;
+  fallbackReason: string | null;
   // playback (all user-initiated; nothing here ever autoplays)
+
   speak: (text: string, overrides?: SpeakOverrides) => void;
   cancel: () => void;
   pause: () => void;
@@ -110,6 +113,11 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
   const [snapshot, setSnapshot] = useState<TtsStateSnapshot | null>(() => controller?.getState() ?? null);
   const [metrics, setMetrics] = useState<TtsMetricsSnapshot>(EMPTY_METRICS);
   const [voices, setVoices] = useState<TtsVoice[]>(() => provider?.listVoices() ?? []);
+  const [isFallback, setIsFallback] = useState<boolean>(() => {
+    const p = provider as unknown as { isUsingFallback?: () => boolean } | null;
+    return typeof p?.isUsingFallback === 'function' ? Boolean(p.isUsingFallback()) : false;
+  });
+  const [fallbackReason, setFallbackReason] = useState<string | null>(null);
 
   // Keep the voice list honest: browsers populate voices asynchronously.
   useEffect(() => {
@@ -119,6 +127,19 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
     const off = provider.onVoicesChanged(() => setVoices(provider.listVoices()));
     return off;
   }, [provider]);
+
+  // Subscribe to fallback notifications (ADR-038 visible fallback)
+  useEffect(() => {
+    const p = provider as unknown as { onFallbackChange?: (cb: (active: boolean, reason: string | null) => void) => () => void } | null;
+    if (!p || typeof p.onFallbackChange !== 'function') return;
+    const unsub = p.onFallbackChange((active, reason) => {
+      setIsFallback(active);
+      setFallbackReason(reason);
+    });
+    return unsub;
+  }, [provider]);
+
+
 
   // Mirror persisted settings into the controller so speak() uses them.
   useEffect(() => {
@@ -175,7 +196,10 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
     failure: snapshot?.failure ?? null,
     metrics,
     prefs,
+    isFallback,
+    fallbackReason,
     speak,
+
     cancel,
     pause,
     resume,

@@ -1,41 +1,43 @@
-#!/usr/bin/env node
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const engineDir = path.join(root, 'apps', 'isl-engine');
+const scriptPath = path.join(engineDir, 'app.py');
 
-const venvPython = process.platform === 'win32'
-  ? path.join(engineDir, '.venv', 'Scripts', 'python.exe')
-  : path.join(engineDir, '.venv', 'bin', 'python');
+const candidates = [
+  path.join(engineDir, '.venv', 'Scripts', 'python.exe'),
+  path.join(engineDir, '.venv', 'bin', 'python'),
+  path.join(engineDir, 'venv', 'Scripts', 'python.exe'),
+  path.join(engineDir, 'venv', 'bin', 'python'),
+  process.platform === 'win32' ? 'python' : 'python3',
+];
 
-const pythonExe = existsSync(venvPython) ? venvPython : 'python';
+const pythonExe = candidates.find((p) => {
+  if (p === 'python' || p === 'python3') return true;
+  return fs.existsSync(p);
+}) || (process.platform === 'win32' ? 'python' : 'python3');
 
-console.log(`[isl-engine] Starting ISL Engine using: ${pythonExe}`);
+console.log(`[ISL-Engine] Using Python executable: ${pythonExe}`);
+console.log(`[ISL-Engine] Launching app.py from: ${engineDir}`);
 
-const child = spawn(pythonExe, ['app.py'], {
+const child = spawn(pythonExe, ['-u', scriptPath], {
   cwd: engineDir,
   stdio: 'inherit',
-  shell: true,
-});
-
-child.on('error', (err) => {
-  console.warn(`[isl-engine] Could not start ISL engine (${err.message}). Continuing without ML engine.`);
+  env: {
+    ...process.env,
+    PYTHONUNBUFFERED: '1',
+  },
 });
 
 child.on('exit', (code, signal) => {
-  if (code !== 0 && code !== null) {
-    console.warn(`[isl-engine] Exited with code ${code}.`);
+  if (code !== null && code !== 0) {
+    console.error(`[ISL-Engine] Process exited with code ${code}`);
   }
+  process.exit(code ?? (signal ? 1 : 0));
 });
 
-process.on('SIGINT', () => {
-  child.kill('SIGINT');
-  process.exit(0);
-});
-process.on('SIGTERM', () => {
-  child.kill('SIGTERM');
-  process.exit(0);
-});
+process.on('SIGINT', () => child.kill('SIGINT'));
+process.on('SIGTERM', () => child.kill('SIGTERM'));

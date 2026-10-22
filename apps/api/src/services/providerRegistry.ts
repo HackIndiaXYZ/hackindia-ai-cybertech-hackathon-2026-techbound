@@ -34,6 +34,15 @@ const IMPLEMENTED: Record<ProviderStatus['capability'], Record<string, ProviderS
     },
   },
   vision: {
+    'isl-engine': {
+      implemented: true,
+      trained: true,
+      authoritative: true,
+      runsOn: 'server',
+      label: 'isl-engine',
+      message:
+        'Trained Dynamic Indian Sign Language neural network and hierarchical gating classifier on Python ML service.',
+    },
     isl: {
       implemented: true,
       trained: true,
@@ -82,13 +91,22 @@ const IMPLEMENTED: Record<ProviderStatus['capability'], Record<string, ProviderS
     },
   },
   tts: {
+    'indic-tts': {
+      implemented: true,
+      trained: true,
+      authoritative: true,
+      runsOn: 'server',
+      label: 'indic-tts',
+      message:
+        'AI4Bharat Indic-TTS neural speech synthesis service (FastPitch + HiFi-GAN) for Indian languages and English.',
+    },
     stub: {
       implemented: true,
       trained: false,
       authoritative: false,
       runsOn: 'browser',
       label: 'browser',
-      message: 'Voice output uses the browser SpeechSynthesis API on-device. No server TTS service exists.',
+      message: 'Voice output uses the browser SpeechSynthesis API on-device.',
     },
   },
 };

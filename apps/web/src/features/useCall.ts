@@ -20,7 +20,9 @@ import type {
   TranscriptFinalPayload,
   SignalEventName,
   SystemErrorPayload,
+  GestureDetectedPayload,
 } from '@isl/shared-types';
+import { SignalEvent } from '../lib/socket.js';
 import { api } from '../lib/apiClient.js';
 import { SignalClient } from '../lib/socket.js';
 import { CallEngine, type SignalSender } from '../lib/webrtc/engine.js';
@@ -80,6 +82,8 @@ export interface CallApi {
   sendText: (body: string) => void;
   /** Relay a typed transcript event to peers over the existing signaling socket. */
   emitTranscript: (event: SignalEventName, payload: unknown) => void;
+  /** Stream hand landmarks to the ISL engine via signaling relay */
+  emitLandmarks: (landmarks: unknown[], clientTimestamp?: number) => void;
   /**
    * Host-only moderation command (§19). Sent over the socket; the server
    * authorizes it against the persisted host and either relays the effect
@@ -426,6 +430,30 @@ export function useCall({ sessionId, displayName, selfUserId }: UseCallArgs): Ca
         if (payload?.sourceTranscriptId) dispatch(translationCompleted(payload));
       }),
     );
+    // Real-time ISL Gesture Detection relayed from isl-engine (Phase 1)
+    off(
+      client.on<GestureDetectedPayload>(SignalEvent.GestureDetected, (payload) => {
+        if (!payload?.label) return;
+        const signerId = payload.fromUserId || (payload.breakdown as { userId?: string } | undefined)?.userId;
+        const signerName = signerId ? (participantsRef.current[signerId]?.displayName ?? 'Participant') : 'Signer';
+        const confPercent = Math.round((payload.confidence ?? 0) * 100);
+
+        const latency = (payload.breakdown as { latencyMs?: number } | undefined)?.latencyMs ?? null;
+        dispatch(
+          captionFinal({
+            id: crypto.randomUUID(),
+            speakerUserId: signerId ?? 'isl-signer',
+            text: `🤟 [${signerName}]: ${payload.label} (${confPercent}% conf)`,
+            kind: 'final',
+            language: 'en-IN',
+            confidence: payload.confidence,
+            latencyMs: latency,
+            provider: payload.provider || 'isl-engine-hierarchical',
+            at: payload.detectedAt || new Date().toISOString(),
+          }),
+        );
+      }),
+    );
     off(
       client.on<TextMessagePayload>('message:text', (payload) => {
         dispatch(
@@ -551,6 +579,15 @@ export function useCall({ sessionId, displayName, selfUserId }: UseCallArgs): Ca
     if (event === 'transcript:final') observeFinalLatency(payload);
   }, [observeFinalLatency]);
 
+  // Outbound landmark streaming relay for the ISL recognition engine (Phase 1).
+  const emitLandmarks = useCallback((landmarks: unknown[], clientTimestamp?: number) => {
+    clientRef.current?.emit(SignalEvent.GestureLandmarks, {
+      participantUserId: selfUserId,
+      landmarks,
+      clientTimestamp: clientTimestamp ?? Date.now(),
+    });
+  }, [selfUserId]);
+
   // Host-only moderation command (§19). The server authorizes against the
   // persisted host; success arrives back as `moderation:applied`, a refusal as
   // a `system:error` rejection notice. Nothing here pretends before that.
@@ -635,6 +672,7 @@ export function useCall({ sessionId, displayName, selfUserId }: UseCallArgs): Ca
     toggleCamera,
     sendText,
     emitTranscript,
+    emitLandmarks,
     moderate,
     dismissNotice,
     recordLocalTranscript,

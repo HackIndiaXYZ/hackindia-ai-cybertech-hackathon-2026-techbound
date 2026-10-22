@@ -163,13 +163,133 @@ Initial schema (users, sessions, participants, messages, consent/feedback) is
 defined in `apps/api/src/infra/db/migrations/`. The repository/service split keeps
 persistence details out of route handlers.
 
-## 8. What Phase 2A does *not* yet include
+## 8. ISL Machine Learning Engine (`apps/isl-engine`) & Real-time WebRTC Relay (Phase 1)
 
-- Production **TURN** credential provisioning (`iceServers` come from config;
-  STUN-only by default).
-- ISL hand recognition, speech recognition, translation and the Babylon.js avatar
-  (Phases 2B–2D, 3A–3B). The caption area hosts typed text only until then.
-- Server-side recording/retention of media — media stays peer-to-peer by design.
+`apps/isl-engine` is a dedicated FastAPI service hosting trained PyTorch Indian Sign Language models:
+- **Hierarchical Two-Stream Gating Transformer:**
+  - Gating Model (`checkpoints/gating_model/best_model.pth`): classifies rolling 154D landmark features into 3 vocabulary specialist groups.
+  - 3 Specialist Models (`checkpoints/specialist_model_group_*/best_model.pth`): classify signs within the assigned group (28 signs total across the 3 groups).
+  - Confidence calculation: $P(\text{gating}) \times P(\text{specialist})$.
+- **Static Hand Gesture Dual Model:**
+  - Feedforward Neural Network + Random Forest ensemble for static finger alphabet (1–9, A–Z).
+- **Indic Translation Service:**
+  - Fast translation of ISL gloss syntax into standard Hindi / English sentences.
 
-Gesture/speech/translation events remain defined in the contracts and relayed
-(JSON-sanitized) but are not yet produced by real producers until their phases.
+### 8.1 Real-Time Streaming Data Flow
+
+```
+┌────────────────────────────────┐
+│  Client Browser (apps/web)     │
+│  - MediaPipeHandTracker        │
+│    (21 landmarks/frame)        │
+│  - IslEngineProvider           │
+│    (30-frame rolling window)   │
+└───────────────┬────────────────┘
+                │ Socket.io emit: gesture:landmarks
+                ▼
+┌────────────────────────────────┐
+│  API Relay (apps/api)          │
+│  - islEngineBridge             │
+│    (persistent WS bridge)      │
+└───────────────┬────────────────┘
+                │ WS /ws/predict (HTTP POST fallback)
+                ▼
+┌────────────────────────────────┐
+│  ISL ML Engine (isl-engine)    │
+│  - 154D feature parser         │
+│  - Gating Model (3 groups)     │
+│  - Specialist Models (28 signs)│
+└───────────────┬────────────────┘
+                │ Prediction result { sign, group, confidence, breakdown }
+                ▼
+┌────────────────────────────────┐
+│  Room Broadcast (apps/api)     │
+│  - io.to(sessionId).emit:      │
+│    gesture:detected            │
+└───────────────┬────────────────┘
+                ▼
+┌────────────────────────────────┐
+│  All Peers in WebRTC Call      │
+│  - Live Captions Feed          │
+│  - Video Tile Status Overlay   │
+└────────────────────────────────┘
+```
+
+### 8.2 Sign Gloss to Grammatical Sentence Pipeline (Phase 2)
+
+Raw sign outputs from the vision pipeline produce discrete sign gloss sequences following Indian Sign Language syntax (primarily Topic-Comment / Subject-Object-Verb, lacking English copulas, inflections, and prepositions).
+
+```
+┌─────────────────────────────────┐
+│ Sign Gloss Tokens               │
+│ e.g. ["I", "School", "Monday"]  │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│ ISLGrammarEngine (Python)       │
+│ - Lexicon category tagger       │
+│ - TSOV -> SVO syntactic parser  │
+│ - Copula & preposition injector │
+│ - Fingerspelling character merge│
+│   (ADR-037, trained=False)      │
+└────────────────┬────────────────┘
+                 │ Formed English: "I go to school on Monday."
+                 ▼
+┌─────────────────────────────────┐
+│ Translation & TTS Layer         │
+│ - Indian Language Translator    │
+│   (Hindi, Marathi, etc.)        │
+│ - Web Speech TTS Playback       │
+└─────────────────────────────────┘
+```
+
+Endpoints providing sentence formation:
+- `POST /format_sentence` (FastAPI) & `POST /process_translate`: accepts `{ glosses, sentence, language }`, returns `{ formed_sentence, translated_sentence, is_rule_based: true }`.
+- WebSocket `/ws/predict` (FastAPI): accepts `{ type: "sentence", glosses: [...] }`.
+- `POST /api/v1/isl/format_sentence` (Express API) proxies to the ML engine via `islEngineBridge.formatSentence()`.
+
+### 8.3 AI4Bharat Indic-TTS Regional Neural Synthesis Pipeline (Phase 3)
+
+Spoken output converts translated ISL sentences into natural Indian regional speech using the AI4Bharat Indic-TTS architecture (FastPitch acoustic model + HiFi-GAN neural vocoder) with visible browser fallback:
+
+```
+┌─────────────────────────────────┐
+│ Formed / Translated Sentence   │
+│ (Hindi, Marathi, English, etc.) │
+└────────────────┬────────────────┘
+                 │ POST /api/v1/tts/synthesize
+                 ▼
+┌─────────────────────────────────┐
+│ API Gateway (apps/api)          │
+│ - Validates schema & headers    │
+│ - Proxies to TTS microservice   │
+│ - Attaches X-Latency-Ms header  │
+└────────────────┬────────────────┘
+                 │ POST http://localhost:8002/synthesize
+                 ▼
+┌─────────────────────────────────┐
+│ Indic-TTS Service (FastAPI)     │
+│ - Pre-warmed FastPitch acoustic │
+│ - HiFi-GAN vocoder pipeline     │
+│ - 24 kHz 16-bit PCM WAV stream  │
+└────────────────┬────────────────┘
+                 │ 200 OK (audio/wav)
+                 ▼
+┌─────────────────────────────────┐
+│ Client Player (apps/web)        │
+│ - IndicTtsProvider              │
+│ - HTML5 Audio streaming player  │
+│ - ADR-038 visible fallback to   │
+│   WebSpeechSynthesis on error   │
+└─────────────────────────────────┘
+```
+
+Endpoints & Contracts:
+- `POST /synthesize` (`services/tts-indic/`): accepts `{ text, lang, gender, voiceId }`, returns streamed `audio/wav` (24 kHz, 16-bit PCM).
+- `GET /health` & `GET /voices`: exposes service status, supported Indian regional languages, and pre-warmed voice models.
+- `POST /api/v1/tts/synthesize` (`apps/api`): authenticated and rate-limited gateway proxy.
+- `IndicTtsProvider` (`apps/web`): client-side provider with `onFallbackChange` callback surfacing fallback state badges to users.
+
+
+

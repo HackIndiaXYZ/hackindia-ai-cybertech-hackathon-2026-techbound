@@ -70,10 +70,17 @@ export function Voice() {
         <h1 className="text-3xl font-bold text-clay-ink">Voice / Read-aloud</h1>
         <div className="flex flex-wrap items-center gap-3">
           <StatusIndicator tone={meta.tone} label={meta.label} />
-          <Badge tone="info">Browser SpeechSynthesis — on-device</Badge>
+          {tts.isFallback ? (
+            <Badge tone="warning">Fallback: Browser SpeechSynthesis</Badge>
+          ) : tts.providerName === 'indic-tts' ? (
+            <Badge tone="success">Engine: AI4Bharat Indic-TTS (Neural FastPitch + HiFi-GAN)</Badge>
+          ) : (
+            <Badge tone="info">Browser SpeechSynthesis — on-device</Badge>
+          )}
           {!caps.genderAge && <Badge tone="warning">Voice gender / age: not reported by this provider</Badge>}
           {!caps.emotionalRendering && <Badge tone="warning">Emotional prosody: not rendered by this provider</Badge>}
         </div>
+
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">

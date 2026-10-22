@@ -28,6 +28,10 @@ export interface GestureDetection {
   confidence: number; // 0..1
   hands: HandPreference[];
   detectedAt: string;
+  fromUserId?: string;
+  breakdown?: Record<string, unknown>;
+  provider?: string;
+  trained?: boolean;
 }
 
 export interface GestureSequenceStep {

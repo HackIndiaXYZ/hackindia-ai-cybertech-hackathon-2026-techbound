@@ -35,6 +35,7 @@ export const SignalEvent = {
   // gesture / translation
   GestureDetected: 'gesture:detected',
   GestureSequence: 'gesture:sequence',
+  GestureLandmarks: 'gesture:landmarks',
   TranslationStarted: 'translation:started',
   TranslationCompleted: 'translation:completed',
   AvatarCommand: 'avatar:command',
@@ -198,6 +199,11 @@ export interface TranscriptFinalPayload {
 // --- Gesture / translation payloads ---
 export type GestureDetectedPayload = GestureDetection;
 export type GestureSequencePayload = ValidatedGestureSequence;
+export interface GestureLandmarksPayload {
+  participantUserId: string;
+  landmarks: unknown[];
+  clientTimestamp?: number;
+}
 export interface TranslationStartedPayload {
   /**
    * Participant whose speech is being translated. In a group session the

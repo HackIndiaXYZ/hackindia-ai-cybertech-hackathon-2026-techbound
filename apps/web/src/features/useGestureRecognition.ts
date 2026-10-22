@@ -213,7 +213,7 @@ export function useGestureRecognition(args: UseGestureRecognitionArgs = {}): Ges
               lastPredictTimeRef.current = now;
               isPredictingRef.current = true;
               islEngineClient
-                .predictStatic(obs.hands[0].landmarks as any)
+                .predictStatic(obs.hands[0].landmarks as unknown as import('@isl/shared-types').HandLandmarks)
                 .then((res) => {
                   if (res && res.prediction && res.prediction !== '-') {
                     setTrainedDetection({

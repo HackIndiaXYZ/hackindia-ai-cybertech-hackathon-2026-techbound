@@ -1,83 +1,112 @@
-#!/usr/bin/env node
-import { spawn, execSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const withIsl = process.argv.includes('--all');
-const isWindows = process.platform === 'win32';
+const npmCmd = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const nodeCmd = process.execPath;
 
-const binDir = path.join(root, 'node_modules', '.bin');
-const tsxBin = path.join(binDir, isWindows ? 'tsx.cmd' : 'tsx');
-const viteBin = path.join(binDir, isWindows ? 'vite.cmd' : 'vite');
+const isAll = process.argv.includes('--all') || process.argv.includes('--with-isl');
 
-console.log('=========================================================');
-console.log(' MissingWhisper — ISL Real-Time Communication Platform');
-console.log('   API:  http://localhost:4000 (Health: /api/v1/health)');
-console.log('   Web:  http://localhost:5173');
-if (withIsl) {
-  console.log('   ISL Engine: enabled');
-}
-console.log('=========================================================');
-
-// 1. Copy MediaPipe assets before starting web
+// 1. Ensure mediapipe assets are in place once upfront
 try {
-  console.log('[setup] Syncing MediaPipe assets...');
-  execSync('node apps/web/scripts/copy-mediapipe-assets.js', { cwd: root, stdio: 'inherit' });
-} catch (e) {
-  console.warn('[setup] MediaPipe sync skipped or failed:', e.message);
+  spawnSync(nodeCmd, [path.join(root, 'apps', 'web', 'scripts', 'copy-mediapipe-assets.js')], {
+    cwd: path.join(root, 'apps', 'web'),
+    stdio: 'ignore',
+  });
+} catch {
+  // Ignore pre-copy errors
 }
 
+const services = [
+  {
+    name: 'api',
+    color: '\x1b[32m', // Green
+    command: `${npmCmd} run dev`,
+    cwd: path.join(root, 'apps', 'api'),
+  },
+  {
+    name: 'web',
+    color: '\x1b[36m', // Cyan
+    command: `${npmCmd} run dev`,
+    cwd: path.join(root, 'apps', 'web'),
+  },
+];
+
+if (isAll) {
+  services.push({
+    name: 'isl',
+    color: '\x1b[35m', // Magenta
+    command: `"${nodeCmd}" "${path.join(root, 'scripts', 'start-isl.mjs')}"`,
+    cwd: root,
+  });
+}
+
+const reset = '\x1b[0m';
 const children = [];
 
-function startProcess(name, bin, args, cwd) {
-  const child = spawn(bin, args, {
-    cwd,
-    stdio: 'inherit',
-    shell: isWindows,
+console.log(`${reset}🚀 Starting development environment (${services.map((s) => s.name).join(', ')})...`);
+
+for (const svc of services) {
+  const child = spawn(svc.command, {
+    cwd: svc.cwd,
+    shell: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, FORCE_COLOR: '1' },
   });
 
-  child.on('error', (err) => {
-    console.error(`[${name}] Error: ${err.message}`);
-  });
+  children.push(child);
 
-  child.on('exit', (code) => {
-    if (code !== 0 && code !== null) {
-      console.warn(`[${name}] Exited with code ${code}`);
+  const prefix = `${svc.color}[${svc.name}]${reset} `;
+
+  child.stdout.on('data', (data) => {
+    const lines = data.toString().split(/\r?\n/);
+    for (const line of lines) {
+      if (line.trim().length > 0) {
+        process.stdout.write(prefix + line + '\n');
+      }
     }
   });
 
-  children.push(child);
-  return child;
-}
-
-// 2. Start API
-startProcess('api', tsxBin, ['watch', 'src/index.ts'], path.join(root, 'apps', 'api'));
-
-// 3. Start Web
-startProcess('web', viteBin, [], path.join(root, 'apps', 'web'));
-
-// 4. Optional: Start ISL engine
-if (withIsl) {
-  startProcess('isl', 'node', [path.join(root, 'scripts', 'start-isl.mjs')], root);
-}
-
-function cleanup() {
-  console.log('\nShutting down dev processes...');
-  for (const child of children) {
-    try {
-      if (isWindows && child.pid) {
-        spawn('taskkill', ['/pid', child.pid.toString(), '/T', '/F'], { stdio: 'ignore' });
-      } else {
-        child.kill('SIGINT');
+  child.stderr.on('data', (data) => {
+    const lines = data.toString().split(/\r?\n/);
+    for (const line of lines) {
+      if (line.trim().length > 0) {
+        process.stderr.write(prefix + line + '\n');
       }
-    } catch {
-      // ignore
+    }
+  });
+
+  child.on('exit', (code, signal) => {
+    if (signal !== 'SIGINT' && signal !== 'SIGTERM' && code !== 0 && code !== null) {
+      console.log(`${svc.color}[${svc.name}]${reset} exited with code ${code}`);
+    }
+  });
+}
+
+function shutdown() {
+  console.log(`\n${reset}Shutting down all services...`);
+  for (const child of children) {
+    if (!child.killed) {
+      try {
+        if (process.platform === 'win32') {
+          spawnSync('taskkill', ['/pid', child.pid.toString(), '/f', '/t'], { stdio: 'ignore' });
+        } else {
+          child.kill('SIGTERM');
+        }
+      } catch {
+        // Ignore kill errors during teardown
+      }
     }
   }
-  process.exit(0);
 }
 
-process.on('SIGINT', cleanup);
-process.on('SIGTERM', cleanup);
+process.on('SIGINT', () => {
+  shutdown();
+  process.exit(0);
+});
+
+process.on('SIGTERM', () => {
+  shutdown();
+  process.exit(0);
+});

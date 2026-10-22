@@ -77,12 +77,13 @@ islRouter.post(
   asyncHandler(async (req, res) => {
     try {
       const contentType = req.headers['content-type'] ?? '';
-      const fetchOptions: any = {
+      const fetchOptions: RequestInit & { duplex?: string } = {
         method: 'POST',
         headers: contentType ? { 'Content-Type': contentType } : {},
-        body: Readable.toWeb(req),
+        body: Readable.toWeb(req) as unknown as RequestInit['body'],
         duplex: 'half',
       };
+
       const resp = await fetch(`${config.islEngineBaseUrl}/predict/dynamic`, fetchOptions);
 
       const data = await resp.json();
@@ -117,6 +118,35 @@ islRouter.post(
       return ok(res, data, resp.status);
     } catch (err: unknown) {
       throw AppError.internal('Failed to translate sentence via ISL engine', {
+        original: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }),
+);
+
+/**
+ * Sentence formation and grammar reordering endpoint.
+ */
+islRouter.post(
+  '/format_sentence',
+  asyncHandler(async (req, res) => {
+    const { glosses, sentence, language } = req.body ?? {};
+    const inputGlosses = glosses ?? sentence;
+    if (!inputGlosses) {
+      throw AppError.badRequest('Missing "glosses" or "sentence" parameter in request body');
+    }
+
+    try {
+      const resp = await fetch(`${config.islEngineBaseUrl}/format_sentence`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ glosses: inputGlosses, language }),
+      });
+
+      const data = await resp.json();
+      return ok(res, data, resp.status);
+    } catch (err: unknown) {
+      throw AppError.internal('Failed to format sentence via ISL grammar engine', {
         original: err instanceof Error ? err.message : String(err),
       });
     }

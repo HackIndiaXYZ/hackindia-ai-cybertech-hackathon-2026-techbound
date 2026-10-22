@@ -46,6 +46,15 @@ describe('resolveProvider (pure)', () => {
     expect(resolveProvider('tts', 'stub').implemented).toBe(true);
     expect(resolveProvider('translation', 'stub').implemented).toBe(false);
   });
+
+  it('tts indic-tts is the neural Indian TTS model service', () => {
+    const p = resolveProvider('tts', 'indic-tts');
+    expect(p.implemented).toBe(true);
+    expect(p.trained).toBe(true);
+    expect(p.authoritative).toBe(true);
+    expect(p.runsOn).toBe('server');
+    expect(p.label).toBe('indic-tts');
+  });
 });
 
 describe('resolveProviders (live config)', () => {
