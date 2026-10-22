@@ -75,7 +75,7 @@ export interface UseCallArgs {
 }
 
 export interface CallApi {
-  start: () => Promise<void>;
+  start: (options?: { allowSynthetic?: boolean }) => Promise<void>;
   end: () => void;
   toggleMic: () => void;
   toggleCamera: () => void;
@@ -206,14 +206,18 @@ export function useCall({ sessionId, displayName, selfUserId }: UseCallArgs): Ca
     durationTimer.current = setInterval(() => dispatch(durationTicked()), 1000);
   }, [dispatch]);
 
-  const start = useCallback(async () => {
+  const start = useCallback(async (options?: { allowSynthetic?: boolean }) => {
     if (startedRef.current) return;
     startedRef.current = true;
     peerStatusesRef.current = {};
     dispatch(callStarted({ sessionId, selfUserId }));
 
-    // 1. Acquire local media (real permission handling).
-    const media = await requestLocalMedia({ audio: true, video: true });
+    // 1. Acquire local media (real permission handling with partial hardware recovery).
+    const media = await requestLocalMedia({
+      audio: true,
+      video: true,
+      allowSyntheticFallback: options?.allowSynthetic,
+    });
     if (!media.stream) {
       dispatch(mediaErrorSet(media.message));
       dispatch(callEvent({ type: 'FAILED', reason: media.message }));

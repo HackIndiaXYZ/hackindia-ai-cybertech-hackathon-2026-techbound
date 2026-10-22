@@ -182,8 +182,19 @@ export function Call() {
           )}
 
           {call.mediaError && (
-            <div role="alert" className="rounded-clay bg-clay-danger/15 p-3 text-clay-danger">
-              {call.mediaError}
+            <div role="alert" className="flex flex-col gap-2 rounded-clay bg-clay-danger/15 p-3 text-clay-danger">
+              <p className="text-sm font-semibold">{call.mediaError}</p>
+              <Button
+                size="sm"
+                variant="secondary"
+                loading={busy}
+                onClick={() => {
+                  setBusy(true);
+                  void engine.start({ allowSynthetic: true }).finally(() => setBusy(false));
+                }}
+              >
+                Join with virtual / demo media
+              </Button>
             </div>
           )}
           {createError && (
@@ -195,18 +206,33 @@ export function Call() {
               Create call room
             </Button>
           ) : (
-            <Button
-              variant="primary"
-              fullWidth
-              loading={busy}
-              disabled={!webrtcReady || !joinToken}
-              onClick={() => {
-                setBusy(true);
-                void engine.start().finally(() => setBusy(false));
-              }}
-            >
-              {joinToken ? 'Join with camera & microphone' : 'Join link missing a token'}
-            </Button>
+            <div className="flex flex-col gap-2">
+              <Button
+                variant="primary"
+                fullWidth
+                loading={busy}
+                disabled={!webrtcReady || !joinToken}
+                onClick={() => {
+                  setBusy(true);
+                  void engine.start().finally(() => setBusy(false));
+                }}
+              >
+                {joinToken ? 'Join with camera & microphone' : 'Join link missing a token'}
+              </Button>
+              {joinToken && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={!webrtcReady || busy}
+                  onClick={() => {
+                    setBusy(true);
+                    void engine.start({ allowSynthetic: true }).finally(() => setBusy(false));
+                  }}
+                >
+                  Join with virtual media (no physical camera required)
+                </Button>
+              )}
+            </div>
           )}
 
           {!joinToken && !isNew && (
