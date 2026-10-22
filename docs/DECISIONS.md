@@ -1006,3 +1006,30 @@ Under naive implementations, concurrent execution risks:
    - Added integration test suite `twoPipelineConcurrency.test.ts` (4/4 passing) validating concurrent execution, cross-talk prevention, and mid-call degradation.
    - Full monorepo passes: `@isl/web` 333/333 tests, `@isl/api` 121/121 tests.
 
+## ADR-042 — Honest Quality Gate & Production Claims vs Aspirational Horizons (Phase 7)
+
+**Date:** 2026-10-22  
+**Status:** Accepted  
+
+**Context:**
+A communication platform connecting deaf and hearing participants through automated AI models faces a profound ethical responsibility. Over-claiming full language translation harms Deaf and Hard of Hearing individuals who rely on accurate, dependable communication. Following the repository's foundational honesty principles (plan §27 and the 'Not achievable by code alone' framing in `docs/GAP-AND-PLAN.md`), the platform explicitly documents the exact boundary of what is production-ready today versus what remains an aspirational future horizon.
+
+**Decision:**
+1. **What is Production-Honest to Claim Today:**
+   - **Real Multi-User WebRTC Call Infrastructure:** Reliable media transport, renegotiation, reconnect ladder, and attribution across group calls.
+   - **Trained Dynamic Sign Recognition (28 Classes):** Backed by real PyTorch checkpoints in `apps/isl-engine` (gating model + 3 specialist transformer groups) plus static A–Z fingerspelling and 1–9 numbers.
+   - **Curated 3D Avatar Animation (38 Real Signs):** Dedicated Babylon.js skeletal keyframe animations for core conversational vocabulary.
+   - **Universal A–Z Fingerspelling Fallback Engine:** Any word outside the 38 curated signs is decomposed and rendered letter-by-letter using authentic ISL skeletal bone rotation keyframes (`sign-a` through `sign-z`).
+   - **Natural Regional Speech Synthesis:** Pre-warmed AI4Bharat Indic-TTS FastSpeech2 microservice providing high-fidelity Indian English and Hindi audio output.
+   - **Graceful Fault Tolerance:** Process crashes in any ancillary daemon (`isl-engine`, `Indic-TTS`, `Whisper-STT`) gracefully degrade to browser-native APIs without terminating the live WebRTC call.
+   - **Measured Quality Gate:** 25/25 test phrases passed (100.0% accuracy on scoped domain, recorded in `docs/quality_gate_results.json` and `docs/PERFORMANCE.md`).
+
+2. **What Remains Aspirational (Not Achievable by Code Alone):**
+   - **Full Dictionary Coverage:** ISL contains tens of thousands of concepts across regional dialects (Delhi, Mumbai, Kolkata, Chennai). Full vocabulary requires continuous Deaf community co-design and professional motion-capture animation.
+   - **Continuous Fluent Sign Recognition:** Recognizing unconstrained, continuous sign paragraphs in natural environments with varying camera angles and lighting remains an open research frontier.
+   - **Nuanced Non-Manual Markers:** While basic facial cues (`question`, `affirmative`, `negative`) are animated, nuanced facial grammar and torso shifts require dedicated research.
+
+3. **In-Product Transparency:**
+   - Exposed `SupportedVocabularyModal` directly in the call surface via "📖 Vocabulary (38 Signs)" button, allowing users and demo evaluators to inspect exact capabilities and understand the fingerspelling fallback mechanism.
+
+

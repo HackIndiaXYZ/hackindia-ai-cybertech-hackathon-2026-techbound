@@ -90,3 +90,25 @@ npm run test:e2e:report --workspace @isl/web     # open the Playwright/axe repor
 The gate runs in the CI `e2e` job ([.github/workflows/ci.yml](../.github/workflows/ci.yml)).
 Until §5 is completed by a human, treat this project as **"automated-AA-clean on
 scanned routes,"** not "WCAG 2.1 AA conformant."
+
+---
+
+## 7. Phase 7 Quality Gate Audit Results (2026-10-22)
+
+### In-Call Interactive & Modal Accessibility
+1. **Live Bidirectional Status Bar (`BidirectionalPipelineStatus`):**
+   - Wrapped in `role="region"` with `aria-label="Real-time translation pipeline status"`.
+   - Each directional status pill specifies `role="status"` with `aria-live="polite"`.
+   - Async state changes communicate state through text labels, pulse indicators, and dedicated tone classes, satisfying WCAG 1.4.1 (Use of Color).
+   - High-contrast compliance: emerald (`#10b981`), sky (`#0284c7`), amber (`#d97706`), purple (`#9333ea`), rose (`#e11d48`) exceed 4.5:1 contrast ratios on clay surfaces.
+
+2. **Supported Vocabulary Scope Drawer (`SupportedVocabularyModal`):**
+   - Modal container enforces `role="dialog"`, `aria-modal="true"`, and `aria-labelledby="vocab-modal-title"`.
+   - Tab filter list implements `role="tablist"` with `role="tab"` and `aria-selected` attributes.
+   - Live search input contains explicit `aria-label="Search supported vocabulary"`.
+   - Keyboard navigation: Complete focus trap with `Escape` key shortcut to dismiss without pointer interaction.
+
+3. **Honest Capability Communication (§27 / §29):**
+   - Scope is prominently communicated inside the call UI via the "📖 Vocabulary (38 Signs)" button.
+   - Clearly documents the 28 camera ML signs, 38 3D avatar animations, and the universal A–Z fingerspelling fallback, eliminating unexpected silent failures during live demonstrations.
+

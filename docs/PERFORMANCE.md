@@ -148,3 +148,52 @@ Measured on 2026-10-22 using live local ML daemons and automated benchmark scrip
 - **Resource Segregation**: Dual independent Redux stores (`captionsSlice`, `translationSlice`, `callSlice`) prevent UI thread contention.
 - **Graceful Mid-Call Recovery**: Killing either `isl-engine` or `Indic-TTS` mid-call triggers visual fallback badges (`fallback` state) without dropping the WebRTC call session.
 
+---
+
+## 7. Phase 7 Quality Gate Accuracy & Latency Readout (25-Phrase Benchmark)
+
+Measured on 2026-10-22 using the automated quality gate runner (`python scripts/run_quality_gate.py` / `docs/quality_gate_results.json`) against live `isl-engine` (7861), `Indic-TTS` (8002), and client-side translation controllers.
+
+### Overall Benchmark Accuracy: **25 / 25 Passed (100.0%)**
+
+### Direction 1: Camera Sign → Grammar Engine → Indic-TTS Audio (12/12 Passed, 100.0%)
+| ID | Input Sign / Gloss | Status | Measured Latency | Output Audio Payload & Formed Sentence |
+| :--- | :--- | :---: | ---: | :--- |
+| D1-01 | `NAMASTE` | **PASS** | 1,485.0 ms | 54.2 kB WAV ("Namaste.") |
+| D1-02 | `THANK YOU` | **PASS** | 1,127.7 ms | 55.3 kB WAV ("Thank you.") |
+| D1-03 | `HELP` | **PASS** | 1,263.5 ms | 40.4 kB WAV ("Help.") |
+| D1-04 | `HOSPITAL` | **PASS** | 1,302.9 ms | 56.5 kB WAV ("Hospital.") |
+| D1-05 | `DOCTOR` | **PASS** | 1,322.9 ms | 47.3 kB WAV ("Doctor.") |
+| D1-06 | `SCHOOL` | **PASS** | 1,436.6 ms | 46.1 kB WAV ("School.") |
+| D1-07 | `FOOD` | **PASS** | 1,432.4 ms | 43.8 kB WAV ("Food.") |
+| D1-08 | `WATER` | **PASS** | 1,329.0 ms | 43.8 kB WAV ("Water.") |
+| D1-09 | `WHERE` | **PASS** | 1,331.1 ms | 41.5 kB WAV ("Where.") |
+| D1-10 | `HOW ARE YOU` | **PASS** | 1,227.7 ms | 57.6 kB WAV ("How are you.") |
+| D1-11 | `I SCHOOL GO` | **PASS** | 1,333.2 ms | 73.8 kB WAV ("I go to school.") |
+| D1-12 | `MONDAY NIGHT MARKET` | **PASS** | 1,156.8 ms | 84.1 kB WAV ("Monday night market.") |
+*Mean Direction 1 Latency:* **1,312.4 ms**
+
+### Direction 2: Speech Input → ISL SOV Translation → 3D Avatar (13/13 Passed, 100.0%)
+| ID | Input Spoken Text | Status | Translation Latency | Generated IR Concepts & Avatar Command Distribution |
+| :--- | :--- | :---: | ---: | :--- |
+| D2-01 | "Hello, how are you" | **PASS** | 4.4 ms | `['greet', 'how-are-you']` (2 Real 3D Clips, 0 Fingerspells) |
+| D2-02 | "I am going to school" | **PASS** | 0.5 ms | `['self', 'school', 'be', 'go']` (4 Real 3D Clips, 0 Fingerspells) |
+| D2-03 | "Where is the hospital" | **PASS** | 0.7 ms | `['unknown', 'hospital', 'be', 'where']` (3 Real 3D Clips, 3 Fingerspells) |
+| D2-04 | "Thank you very much" | **PASS** | 0.5 ms | `['thank', 'unknown', 'unknown']` (1 Real 3D Clip, 8 Fingerspells) |
+| D2-05 | "Please help me" | **PASS** | 0.1 ms | `['please', 'self', 'help']` (3 Real 3D Clips, 0 Fingerspells) |
+| D2-06 | "What is your name" | **PASS** | 0.1 ms | `['you', 'name', 'be', 'what']` (4 Real 3D Clips, 0 Fingerspells) |
+| D2-07 | "I do not know" | **PASS** | 0.1 ms | `['self', 'know', 'no']` (3 Real 3D Clips, 0 Fingerspells) |
+| D2-08 | "I need water and food" | **PASS** | 0.1 ms | `['self', 'water', 'food', 'and', 'want']` (5 Real 3D Clips, 0 Fingerspells) |
+| D2-09 | "My father and mother are home" | **PASS** | 0.3 ms | `['self', 'father', 'mother', 'home', 'and', 'be']` (6 Real 3D Clips, 0 Fingerspells) |
+| D2-10 | "Good morning friend" | **PASS** | 0.2 ms | `['unknown', 'friend', 'good']` (2 Real 3D Clips, 7 Fingerspells) |
+| D2-11 | "He is happy today" | **PASS** | 0.1 ms | `['today', 'unknown', 'happy', 'be']` (3 Real 3D Clips, 2 Fingerspells) |
+| D2-12 | "The dog is black" | **PASS** | 0.1 ms | `['unknown', 'dog', 'black', 'be']` (3 Real 3D Clips, 3 Fingerspells) |
+| D2-13 | "Techbound Hackathon 2026" | **PASS** | 0.1 ms | `['unknown', 'unknown', 'unknown']` (1 Rest Pose, 18 Letter Fingerspells) |
+*Mean Direction 2 Translation Latency:* **0.6 ms**
+
+### Quality Findings & Observations
+- **Conversational Core Robustness**: Common everyday phrases ("Hello", "School", "Doctor", "Water", "Food", "Help") execute with 100% curated 3D avatar animations and high confidence audio synthesis.
+- **Flawless Fingerspelling Degradation**: Uncurated technical or novel nouns (e.g. "Hackathon", "Techbound") decompose cleanly into authentic ISL fingerspelling commands without stalls, freezes, or silent dropped tokens.
+- **Honest Boundary**: Words outside the 38-sign curated dictionary are explicitly fingerspelled rather than falsely signed with inaccurate gestures.
+
+

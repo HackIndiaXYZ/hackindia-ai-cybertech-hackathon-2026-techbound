@@ -19,6 +19,7 @@ import { SpeechControl } from '../components/call/SpeechControl.js';
 import { ParticipantsPanel } from '../components/call/ParticipantsPanel.js';
 import { TranslationPanel } from '../components/call/TranslationPanel.js';
 import { BidirectionalPipelineStatus } from '../components/call/BidirectionalPipelineStatus.js';
+import { SupportedVocabularyModal } from '../components/call/SupportedVocabularyModal.js';
 import type { ParticipantUiState } from '../store/callSlice.js';
 
 function formatDuration(totalSec: number): string {
@@ -57,6 +58,7 @@ export function Call() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [showAvatar, setShowAvatar] = useState(false);
   const [islRecognitionOn, setIslRecognitionOn] = useState(true);
+  const [showVocabulary, setShowVocabulary] = useState(false);
 
   const avatar = useAvatar();
 
@@ -299,6 +301,14 @@ export function Call() {
           >
             {showAvatar ? 'Hide ISL Avatar' : 'Show ISL Avatar (Interpreter)'}
           </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowVocabulary(true)}
+            aria-label="View supported ISL vocabulary scope"
+          >
+            📖 Vocabulary (38 Signs)
+          </Button>
           <ConnectionIndicator state={call.state} />
           <span className="tabular-nums text-sm text-clay-muted" aria-label="Call duration">
             {formatDuration(call.durationSec)}
@@ -485,6 +495,12 @@ export function Call() {
         selfUserId={user.id}
         captionFontSize={settings.captionFontSize}
         onSendText={engine.sendText}
+      />
+
+      {/* Phase 7: Honest Vocabulary Scope Disclosure Modal */}
+      <SupportedVocabularyModal
+        isOpen={showVocabulary}
+        onClose={() => setShowVocabulary(false)}
       />
     </div>
   );
