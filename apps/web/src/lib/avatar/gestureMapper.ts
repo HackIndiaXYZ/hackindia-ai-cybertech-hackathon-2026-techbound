@@ -61,23 +61,57 @@ export class GestureMapper {
     return gestureIds.map((id, i) => this.toCommand(id, startIndex + i));
   }
 
-  /** Phase 3A entry point: turn an ISL concept's gesture ids into commands. */
+  /** Phase 3A/5 entry point: turn an ISL concept's gesture ids into commands with fingerspelling fallback. */
   fromConcept(concept: IslConcept, startIndex = 0): ConceptMapping {
     const commands: AvatarAnimationCommand[] = [];
     const unrecognized: string[] = [];
-    concept.gestureIds.forEach((id, i) => {
-      const { descriptor, recognized } = this.resolve(id);
-      if (!recognized) unrecognized.push(id);
-      // Prefer the concept's facial expression / timing over the seed defaults,
-      // but never upgrade a placeholder clip into a claimed real sign.
-      const merged: GestureClipDescriptor = {
-        ...descriptor,
-        gestureId: id,
-        facialExpression: concept.facialExpression,
-        durationMs: concept.timingMs > 0 ? concept.timingMs : descriptor.durationMs,
-      };
-      commands.push(this.descriptorToCommand(merged, startIndex + i));
-    });
+
+    // 1. Direct gesture mapping when concept has gesture ids
+    if (concept.gestureIds && concept.gestureIds.length > 0) {
+      concept.gestureIds.forEach((id, i) => {
+        const { descriptor, recognized } = this.resolve(id);
+        if (!recognized) unrecognized.push(id);
+        // Prefer the concept's facial expression / timing over the seed defaults,
+        // but never upgrade a placeholder clip into a claimed real sign.
+        const merged: GestureClipDescriptor = {
+          ...descriptor,
+          gestureId: id,
+          facialExpression: concept.facialExpression,
+          durationMs: concept.timingMs > 0 ? concept.timingMs : descriptor.durationMs,
+        };
+        commands.push(this.descriptorToCommand(merged, startIndex + i));
+      });
+      return { commands, unrecognized };
+    }
+
+    // 2. Phase 5 fallback: ISL fingerspelling letter-by-letter for unrecognized words
+    const textToSpell = (concept.sourceText || concept.normalizedMeaning || '')
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+
+    if (textToSpell.length > 0) {
+      const stepDuration = Math.max(
+        350,
+        Math.min(650, Math.round((concept.timingMs || AVATAR.DEFAULT_CLIP_DURATION_MS) / textToSpell.length)),
+      );
+
+      for (let i = 0; i < textToSpell.length; i++) {
+        const letter = textToSpell[i];
+        const gestureId = `fingerspell-${letter}`;
+        const { descriptor } = this.resolve(gestureId);
+        const letterDescriptor: GestureClipDescriptor = {
+          ...descriptor,
+          facialExpression: concept.facialExpression || 'neutral',
+          durationMs: stepDuration,
+        };
+        commands.push(this.descriptorToCommand(letterDescriptor, startIndex + i));
+      }
+    } else {
+      // Non-alphabetic or empty fallback: emit safe rest clip
+      commands.push(this.toCommand('reset', startIndex));
+      unrecognized.push(concept.conceptId);
+    }
+
     return { commands, unrecognized };
   }
 

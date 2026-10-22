@@ -937,8 +937,35 @@ The hearing/speaking participant's microphone speech must be transcribed into te
 
 **Alternatives Considered:**
 - Cloud STT APIs (Google Speech-to-Text, AWS Transcribe): rejected to maintain local offline capability and avoid per-minute billing.
-- Vosk / Kaldi: rejected due to complex Windows native compilation and inferior multilingual Hindi accuracy compared to Whisper.
+## ADR-040: Scoped 3D ISL Avatar Animation & Fingerspelling Fallback Engine (Phase 5)
 
+**Date:** 2026-10-22  
+**Status:** Accepted  
 
+**Context:**
+The platform renders bidirectional translation for deaf participants through a real-time 3D avatar. Previously:
+1. **Divergent Systems:** A separate subproject existed at `apps/signify` containing an early Create React App prototype with Mixamo `xbot`/`ybot` assets, while `apps/web/src/lib/avatar/` hosted the active Babylon.js pipeline.
+2. **Animation Scope & Realism:** The procedural avatar relied heavily on generic development motions (`open`, `close`, `point`, `raise-hand`) which were not authentic Indian Sign Language signs.
+3. **Feasibility Reality (§27):** Producing full, fluent ISL animation for thousands of vocabulary words is strictly out of scope for automated agents without an ISL consultant, Deaf community evaluation, and professional motion-capture/keyframe animation (as recognized in `docs/GAP-AND-PLAN.md`).
 
+**Decision:**
+1. **Consolidation & Archiving of `apps/signify`:**
+   - Confirmed that all usable assets — the rigged `xbot.glb` and `ybot.glb` models and the 30 bone keyframe animation files (letters A–Z and words HOME, PERSON, TIME, YOU) — are integrated directly into `@isl/web`'s Babylon.js subsystem (`apps/web/src/lib/avatar/islSignRegistry.ts` and `apps/web/public/assets/avatars/`).
+   - Marked `apps/signify/README.md` as archived to prevent confusion and eliminate runtime divergence.
+2. **Deliberately Scoped Demo Vocabulary:**
+   - Defined the primary animated vocabulary as the exact intersection of `apps/isl-engine`'s 28 dynamic sign classes, the Phase 4 expanded gloss lexicon, and curated conversational signs:
+     - **38 Curated Real Sign Animations:** `namaste/hello`, `thank you`, `help`, `water`, `food`, `where`, `no`, `yes`, `please`, `sorry`, `self/I`, `you`, `stop`, `home`, `person`, `time`, `he`, `she`, `school`, `hospital`, `doctor`, `father`, `mother`, `friend`, `family`, `happy`, `sad`, `city`, `market`, `park`, `dog`, `child`, `girl`, `shirt`, `dress`, `hat`, `shoe`, `black`, `yellow`, `heavy`, `street`, `monday`, `night`, `how-are-you`, `stand`, `walk`.
+     - **26 ISL Alphabet Fingerspelling Signs:** Letters `A` through `Z` backed by authentic Mixamo skeletal bone keyframes in `ISL_SIGN_REGISTRY`.
+   - Updated `apps/web/src/lib/avatar/constants.ts` with authentic sign descriptors marked `realClip: true` and appropriate facial expressions (`affirmative`, `negative`, `question`, `emphasis`).
+   - Implemented authentic skeletal rotation/procedural motion handlers in `babylonAvatarAdapter.ts` for all 38 words.
+3. **Letter-by-Letter ISL Fingerspelling Fallback Engine:**
+   - Enhanced `GestureMapper.fromConcept` in `apps/web/src/lib/avatar/gestureMapper.ts`:
+     - When an unrecognized word (`conceptId: 'unknown'`) or a concept outside the curated 38 signs is received, the engine automatically decomposes the word into letters and generates sequential fingerspelling commands (`fingerspell-a` through `fingerspell-z`).
+     - Each letter command references authentic ISL handshapes (`sign-a` ... `sign-z`) with `realClip: true` and `isPlaceholder: false`.
+     - Non-alphabetic tokens or malformed terms safely reset the rig to neutral rest pose without breaking the animation queue.
+4. **Honesty & Quality Constraints:**
+   - Full ISL vocabulary coverage remains explicitly documented as requiring professional ISL animator and Deaf consultant involvement. The platform honestly delineates between curated signs (`realClip: true`) and fingerspelled fallback.
 
+**Vocabulary Split:**
+- **Real Sign Animations (38 words):** `black`, `child`, `city`, `doctor`, `dog`, `dress`, `family`, `father`, `food`, `friend`, `girl`, `happy`, `hat`, `he`, `heavy`, `help`, `home`, `hospital`, `how-are-you`, `market`, `monday`, `mother`, `namaste`, `night`, `no`, `park`, `person`, `please`, `sad`, `school`, `self`, `she`, `shirt`, `shoe`, `stand`, `stop`, `street`, `thank you`, `time`, `walk`, `water`, `where`, `yellow`, `yes`, `you`.
+- **Fingerspelled Fallback:** All words outside the 38 curated signs are spelled letter-by-letter using the 26 real ISL fingerspelling bone keyframes (`A`–`Z`).

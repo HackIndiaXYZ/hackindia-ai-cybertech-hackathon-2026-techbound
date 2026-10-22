@@ -327,12 +327,45 @@ Microphone dictation during calls captures speech and maps it into ISL gloss con
 ```
 
 Endpoints & Contracts:
-- `POST /transcribe` (`services/stt-whisper/`): accepts audio file, returns `{ text, language, latency_ms, model }`.
-- `GET /health` (`services/stt-whisper/`): exposes health and supported multilingual models.
-- `POST /api/v1/speech/transcribe` (`apps/api`): authenticated streaming proxy to Whisper.
-- `WhisperSpeechProvider` (`apps/web`): cross-browser STT provider using MediaRecorder and automatic fallback.
-- `DEFAULT_GLOSSARY` (`apps/web/src/lib/translation/glossary.ts`): 74-concept lexicon with 100% 28-class ISL coverage.
+### 8.5 3D ISL Avatar Animation & Fingerspelling Fallback Pipeline (Phase 5)
 
+Renders real-time Indian Sign Language motions for translated gloss concepts through a unified Babylon.js rig:
 
+```
+┌─────────────────────────────────┐
+│ Concept Stream (from speech/IR) │
+│ - IslConcept[] with timing/expr │
+└────────────────┬────────────────┘
+                 │
+                 ▼
+┌─────────────────────────────────┐
+│ GestureMapper (apps/web)        │
+│ - Curated ISL sign lookup (38)  │
+│ - Letter decomposition fallback │
+└────────────────┬────────────────┘
+                 │
+        ┌────────┴──────────────────────────┐
+        │ [In 38 Curated Vocabulary]        │ [Unrecognized / Arbitrary Word]
+        ▼                                   ▼
+┌─────────────────────────────────┐ ┌─────────────────────────────────┐
+│ Real Sign Animation Clip        │ │ ISL Fingerspelling Engine       │
+│ - sign-namaste, sign-school...  │ │ - Sequence: fingerspell-a...-z  │
+│ - Authentic joint keyframes     │ │ - Real Mixamo bone poses        │
+└────────────────┬────────────────┘ └────────────────┬────────────────┘
+                 │                                   │
+                 └─────────────────┬─────────────────┘
+                                   │
+                                   ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ Babylon.js Humanoid Rig (babylonAvatarAdapter.ts)               │
+│ - Mixamo GLB loader (missingwhisper-avatar.glb / ybot / xbot)   │
+│ - Procedural skeletal bone transform runner                     │
+│ - Dynamic facial expressions (affirmative, negative, question)  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-
+Endpoints & Contracts:
+- `ISL_SIGN_REGISTRY` (`apps/web/src/lib/avatar/islSignRegistry.ts`): consolidated bone keyframe definitions from Signify (`sign-a`...`sign-z`, `sign-home`, `sign-person`, `sign-time`, `sign-you`).
+- `PLACEHOLDER_GESTURE_REGISTRY` (`apps/web/src/lib/avatar/constants.ts`): metadata for 38 authentic signs and 26 fingerspelling letters.
+- `GestureMapper` (`apps/web/src/lib/avatar/gestureMapper.ts`): translates concepts to animation commands with automatic letter-by-letter fingerspelling fallback.
+- `apps/signify`: archived legacy prototype; all keyframe assets merged into unified web avatar pipeline.

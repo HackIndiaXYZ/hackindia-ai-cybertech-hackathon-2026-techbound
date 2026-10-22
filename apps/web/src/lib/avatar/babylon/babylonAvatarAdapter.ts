@@ -474,6 +474,146 @@ export async function createBabylonAvatarAdapter(
           poseTween(n.right_forearm, new Vector3(0.3, 0, 0), dur);
           poseTween(n.right_hand, new Vector3(-0.5, 0, 0), dur);
           break;
+        case 'sign-happy':
+          poseTween(n.left_upper_arm, new Vector3(0.5, 0, -0.2), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.5, 0, 0.2), dur);
+          poseTween(n.left_forearm, new Vector3(1.1, -0.2, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(1.1, 0.2, 0), dur, true);
+          break;
+        case 'sign-sad':
+          poseTween(n.head, new Vector3(0.35, 0, 0), dur);
+          poseTween(n.left_upper_arm, new Vector3(0.2, 0, -0.1), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.2, 0, 0.1), dur);
+          break;
+        case 'sign-school':
+          poseTween(n.left_upper_arm, new Vector3(0.5, 0, -0.2), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.5, 0, 0.2), dur);
+          poseTween(n.left_forearm, new Vector3(0.9, 0.5, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(0.9, -0.5, 0), dur, true);
+          break;
+        case 'sign-hospital':
+          poseTween(n.left_upper_arm, new Vector3(0.3, 0, -0.2), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.6, 0.4, 0), dur);
+          poseTween(n.right_forearm, new Vector3(1.2, 0.3, 0), dur);
+          break;
+        case 'sign-doctor':
+          poseTween(n.left_upper_arm, new Vector3(0.4, 0, -0.2), dur);
+          poseTween(n.left_forearm, new Vector3(0.8, 0.1, 0), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.7, 0.2, 0), dur);
+          poseTween(n.right_forearm, new Vector3(1.1, 0.4, 0), dur);
+          break;
+        case 'sign-father':
+          poseTween(n.right_upper_arm, new Vector3(1.1, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(1.4, 0.2, 0), dur);
+          break;
+        case 'sign-mother':
+          poseTween(n.right_upper_arm, new Vector3(0.8, 0, 0.1), dur);
+          poseTween(n.right_forearm, new Vector3(1.2, 0, 0), dur);
+          break;
+        case 'sign-friend':
+          poseTween(n.left_upper_arm, new Vector3(0.5, 0.2, -0.3), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.5, -0.2, 0.3), dur);
+          poseTween(n.left_forearm, new Vector3(0.9, 0.3, 0), dur);
+          poseTween(n.right_forearm, new Vector3(0.9, -0.3, 0), dur);
+          break;
+        case 'sign-family':
+          poseTween(n.left_upper_arm, new Vector3(0.6, 0, -0.4), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.6, 0, 0.4), dur);
+          poseTween(n.left_forearm, new Vector3(0.7, 0.2, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(0.7, -0.2, 0), dur, true);
+          break;
+        case 'sign-city':
+          poseTween(n.left_upper_arm, new Vector3(0.9, 0, -0.3), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.9, 0, 0.3), dur);
+          poseTween(n.left_forearm, new Vector3(0.8, 0, 0), dur);
+          poseTween(n.right_forearm, new Vector3(0.8, 0, 0), dur);
+          break;
+        case 'sign-market':
+          poseTween(n.left_forearm, new Vector3(0.8, 0.2, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(0.8, -0.2, 0), dur, true);
+          break;
+        case 'sign-park':
+          poseTween(n.left_upper_arm, new Vector3(0.6, 0, -0.6), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.6, 0, 0.6), dur);
+          break;
+        case 'sign-dog':
+          poseTween(n.right_upper_arm, new Vector3(0.4, 0, 0.3), dur);
+          poseTween(n.right_forearm, new Vector3(0.7, 0, 0), dur, true);
+          break;
+        case 'sign-child':
+          poseTween(n.right_upper_arm, new Vector3(0.3, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(0.4, 0, 0), dur, true);
+          break;
+        case 'sign-girl':
+          poseTween(n.right_upper_arm, new Vector3(0.8, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(1.3, 0.2, 0), dur);
+          break;
+        case 'sign-shirt':
+          poseTween(n.right_upper_arm, new Vector3(0.7, 0, 0.1), dur);
+          poseTween(n.right_forearm, new Vector3(1.1, 0, 0), dur, true);
+          break;
+        case 'sign-dress':
+          poseTween(n.left_upper_arm, new Vector3(0.4, 0, -0.1), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.4, 0, 0.1), dur);
+          poseTween(n.left_forearm, new Vector3(0.5, 0, 0), dur);
+          poseTween(n.right_forearm, new Vector3(0.5, 0, 0), dur);
+          break;
+        case 'sign-hat':
+          poseTween(n.right_upper_arm, new Vector3(1.3, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(1.4, 0, 0), dur);
+          break;
+        case 'sign-shoe':
+          poseTween(n.left_forearm, new Vector3(0.9, 0.3, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(0.9, -0.3, 0), dur, true);
+          break;
+        case 'sign-black':
+          poseTween(n.right_upper_arm, new Vector3(0.9, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(1.3, 0.3, 0), dur);
+          break;
+        case 'sign-yellow':
+          poseTween(n.right_upper_arm, new Vector3(0.7, 0, 0.3), dur);
+          poseTween(n.right_forearm, new Vector3(1.0, 0.4, 0), dur, true);
+          break;
+        case 'sign-heavy':
+          poseTween(n.left_upper_arm, new Vector3(0.3, 0, -0.1), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.3, 0, 0.1), dur);
+          poseTween(n.left_forearm, new Vector3(0.3, 0, 0), dur);
+          poseTween(n.right_forearm, new Vector3(0.3, 0, 0), dur);
+          break;
+        case 'sign-street':
+          poseTween(n.left_upper_arm, new Vector3(0.7, 0, -0.1), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.7, 0, 0.1), dur);
+          poseTween(n.left_forearm, new Vector3(0.4, 0, 0), dur);
+          poseTween(n.right_forearm, new Vector3(0.4, 0, 0), dur);
+          break;
+        case 'sign-monday':
+          poseTween(n.right_upper_arm, new Vector3(0.6, 0, 0.2), dur);
+          poseTween(n.right_forearm, new Vector3(0.8, 0.4, 0), dur, true);
+          break;
+        case 'sign-night':
+          poseTween(n.left_forearm, new Vector3(0.8, 0.5, 0), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.8, -0.2, 0), dur);
+          poseTween(n.right_forearm, new Vector3(1.0, 0.3, 0), dur);
+          break;
+        case 'sign-how-are-you':
+          poseTween(n.right_upper_arm, new Vector3(0.8, 0, 0.1), dur / 2);
+          poseTween(n.right_forearm, new Vector3(0.4, 0, 0), dur);
+          poseTween(n.head, new Vector3(0.15, 0.1, 0), dur);
+          break;
+        case 'sign-he':
+        case 'sign-she':
+          poseTween(n.right_upper_arm, new Vector3(0.5, 0, 0.3), dur);
+          poseTween(n.right_forearm, new Vector3(0.6, 0, 0), dur);
+          break;
+        case 'sign-stand':
+          poseTween(n.left_forearm, new Vector3(0.7, 0.2, 0), dur);
+          poseTween(n.right_upper_arm, new Vector3(0.7, 0, 0.1), dur);
+          poseTween(n.right_forearm, new Vector3(1.0, 0, 0), dur);
+          break;
+        case 'sign-walk':
+          poseTween(n.left_forearm, new Vector3(0.6, 0, 0), dur, true);
+          poseTween(n.right_forearm, new Vector3(0.6, 0, 0), dur, true);
+          break;
         case 'reset':
         default:
           setRestPose();
