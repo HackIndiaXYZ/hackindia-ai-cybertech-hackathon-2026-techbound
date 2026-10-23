@@ -384,13 +384,13 @@ export function Translator() {
                 onChange={(e) => setTargetLang(e.target.value)}
                 aria-label="Translated spoken language"
                 aria-describedby="sentence-builder-help"
-                className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-2 py-1 text-xs font-semibold text-clay-ink"
+                className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-2 py-1 text-xs font-semibold text-clay-ink cursor-pointer"
               >
-                <option value="hi">Hindi (हिंदी)</option>
-                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
-                <option value="bn">Bengali (বাংলা)</option>
-                <option value="gu">Gujarati (ગુજરાતી)</option>
-                <option value="mr">Marathi (मराठी)</option>
+                <option value="hi" className="bg-clay-surface text-clay-ink">Hindi (हिंदी)</option>
+                <option value="pa" className="bg-clay-surface text-clay-ink">Punjabi (ਪੰਜਾਬੀ)</option>
+                <option value="bn" className="bg-clay-surface text-clay-ink">Bengali (বাংলা)</option>
+                <option value="gu" className="bg-clay-surface text-clay-ink">Gujarati (ગુજરાતી)</option>
+                <option value="mr" className="bg-clay-surface text-clay-ink">Marathi (मराठी)</option>
               </select>
 
               <Button

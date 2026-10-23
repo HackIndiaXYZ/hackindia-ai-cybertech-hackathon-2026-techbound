@@ -226,7 +226,7 @@ export function Settings() {
   const textScale = useAppSelector((s) => s.settings.textScale);
 
   const selectClass =
-    'h-11 rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-3 font-semibold text-clay-ink';
+    'h-11 rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-3 font-semibold text-clay-ink cursor-pointer';
 
   return (
     <div className="flex flex-col gap-6">
@@ -250,7 +250,7 @@ export function Settings() {
               onChange={(e) => dispatch(set({ theme: e.target.value as ThemeName }))}
             >
               {THEMES.map((t) => (
-                <option key={t.id} value={t.id}>
+                <option key={t.id} value={t.id} className="bg-clay-surface text-clay-ink">
                   {t.label}
                 </option>
               ))}
@@ -267,7 +267,7 @@ export function Settings() {
               onChange={(e) => dispatch(set({ textScale: Number(e.target.value) }))}
             >
               {TEXT_SCALES.map((s) => (
-                <option key={s} value={s}>
+                <option key={s} value={s} className="bg-clay-surface text-clay-ink">
                   {Math.round(s * 100)}%
                 </option>
               ))}

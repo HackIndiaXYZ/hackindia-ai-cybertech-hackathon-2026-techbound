@@ -157,10 +157,10 @@ export function Voice() {
               id="tts-lang"
               value={tts.prefs.language}
               onChange={(e) => tts.setLanguage(e.target.value as LanguageCode)}
-              className="rounded-clay border border-clay-edge/70 bg-clay-soft px-3 py-2 text-clay-ink"
+              className="rounded-clay border border-clay-edge/70 bg-clay-soft px-3 py-2 text-clay-ink cursor-pointer"
             >
               {LANGUAGE_OPTIONS.map((o) => (
-                <option key={o.code} value={o.code}>
+                <option key={o.code} value={o.code} className="bg-clay-surface text-clay-ink">
                   {o.label}
                 </option>
               ))}
@@ -181,11 +181,11 @@ export function Voice() {
               value={tts.prefs.voiceId ?? tts.selectedVoice?.voiceId ?? ''}
               onChange={(e) => tts.selectVoice(e.target.value || null)}
               disabled={!caps.voiceSelection || tts.voices.length === 0}
-              className="rounded-clay border border-clay-edge/70 bg-clay-soft px-3 py-2 text-clay-ink"
+              className="rounded-clay border border-clay-edge/70 bg-clay-soft px-3 py-2 text-clay-ink cursor-pointer"
             >
-              <option value="">Auto (best match)</option>
+              <option value="" className="bg-clay-surface text-clay-ink">Auto (best match)</option>
               {tts.voices.map((v) => (
-                <option key={v.voiceId} value={v.voiceId}>
+                <option key={v.voiceId} value={v.voiceId} className="bg-clay-surface text-clay-ink">
                   {v.name} — {v.lang}
                 </option>
               ))}

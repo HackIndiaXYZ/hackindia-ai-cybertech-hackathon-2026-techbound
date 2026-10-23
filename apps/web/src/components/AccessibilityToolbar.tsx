@@ -21,7 +21,7 @@ export function AccessibilityToolbar({ className }: { className?: string }) {
     'flex h-10 items-center gap-1.5 rounded-clay border-2 border-clay-edge/70 bg-clay-surface pl-2.5 transition-colors focus-within:border-clay-primary';
   const captionClass = 'text-[11px] font-bold uppercase tracking-[0.12em] text-clay-muted';
   const selectClass =
-    'h-full rounded-r-[0.7rem] border-0 bg-transparent pr-1 text-sm font-semibold text-clay-ink outline-none';
+    'h-full rounded-r-[0.7rem] border-0 bg-clay-surface pr-1 text-sm font-semibold text-clay-ink outline-none cursor-pointer';
 
   return (
     <div
@@ -41,7 +41,7 @@ export function AccessibilityToolbar({ className }: { className?: string }) {
           onChange={(e) => dispatch(set({ theme: e.target.value as ThemeName }))}
         >
           {THEMES.map((t) => (
-            <option key={t.id} value={t.id}>
+            <option key={t.id} value={t.id} className="bg-clay-surface text-clay-ink">
               {t.label}
             </option>
           ))}
@@ -60,7 +60,7 @@ export function AccessibilityToolbar({ className }: { className?: string }) {
           onChange={(e) => dispatch(set({ textScale: Number(e.target.value) }))}
         >
           {TEXT_SCALES.map((s) => (
-            <option key={s} value={s}>
+            <option key={s} value={s} className="bg-clay-surface text-clay-ink">
               {Math.round(s * 100)}%
             </option>
           ))}
