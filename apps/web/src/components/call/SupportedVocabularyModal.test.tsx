@@ -1,8 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import { SupportedVocabularyModal } from './SupportedVocabularyModal.js';
 
-describe('SupportedVocabularyModal Component (Phase 7 Honest Scope Disclosure)', () => {
+describe('SupportedVocabularyModal scope disclosure', () => {
   it('does not render when isOpen is false', () => {
     const { container } = render(
       <SupportedVocabularyModal isOpen={false} onClose={() => {}} />
@@ -17,7 +17,35 @@ describe('SupportedVocabularyModal Component (Phase 7 Honest Scope Disclosure)',
     expect(dialog).toBeInTheDocument();
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(screen.getByRole('heading', { level: 2, name: /Supported ISL Vocabulary Scope/i })).toBeInTheDocument();
-    expect(screen.getByText(/Honest capability disclosure/i)).toBeInTheDocument();
+    expect(screen.getByText(/signs the avatar performs with real keyframes/i)).toBeInTheDocument();
+  });
+
+  it('only advertises avatar animation for terms the rig has real keyframes for', () => {
+    render(<SupportedVocabularyModal isOpen={true} onClose={() => {}} />);
+
+    // 'Thank You' maps to sign-thank, which has authentic keyframes.
+    const thankYou = screen.getByText('Thank You').closest('div');
+    expect(within(thankYou as HTMLElement).getByTitle('Animated by 3D Avatar')).toBeInTheDocument();
+
+    // 'Doctor' maps to sign-doctor, which has no keyframes — the avatar spells it,
+    // so claiming it as an animated sign would be an over-claim.
+    const doctor = screen.getByText('Doctor').closest('div');
+    expect(within(doctor as HTMLElement).queryByTitle('Animated by 3D Avatar')).not.toBeInTheDocument();
+  });
+
+  it('derives the avatar tab count from the same keyframe check as the badges', () => {
+    render(<SupportedVocabularyModal isOpen={true} onClose={() => {}} />);
+
+    const avatarTab = screen.getByRole('tab', { name: /Avatar Signs \(\d+\)/ });
+    const count = Number(/\((\d+)\)/.exec(avatarTab.textContent ?? '')?.[1]);
+    const total = Number(/\((\d+)\)/.exec(screen.getByRole('tab', { name: /^All \(\d+\)$/ }).textContent ?? '')?.[1]);
+    fireEvent.click(avatarTab);
+
+    // The advertised avatar scope is strictly narrower than the full list.
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThan(total);
+    expect(screen.queryByText('Thank You')).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).queryByText('Monday')).not.toBeInTheDocument();
   });
 
   it('filters vocabulary list by search query', () => {

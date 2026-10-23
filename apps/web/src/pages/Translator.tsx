@@ -347,7 +347,9 @@ export function Translator() {
           <Card className="flex flex-col gap-3">
             <h2 className="text-lg font-semibold text-clay-ink">ISL Sentence Builder</h2>
             <p className="text-xs text-clay-muted" id="sentence-builder-help">
-              Combine recognized ISL signs into a sentence and convert to fluent spoken language.
+              Combine recognized ISL signs into a sentence and convert to fluent spoken language. The English
+              sentence is always produced; the five listed languages are the ones this build's translator actually
+              resolves, so no option here silently returns a different language.
             </p>
 
             <div className="min-h-[2.5rem] rounded-clay border-2 border-clay-edge/60 bg-clay-soft p-2.5" aria-live="polite" aria-atomic="true">
@@ -374,21 +376,21 @@ export function Translator() {
 
             <div className="flex items-center gap-2">
               <label htmlFor="target-language" className="sr-only">
-                Target language
+                Translated spoken language
               </label>
               <select
                 id="target-language"
                 value={targetLang}
                 onChange={(e) => setTargetLang(e.target.value)}
-                aria-label="Target language"
+                aria-label="Translated spoken language"
                 aria-describedby="sentence-builder-help"
                 className="rounded-clay border-2 border-clay-edge/70 bg-clay-surface px-2 py-1 text-xs font-semibold text-clay-ink"
               >
                 <option value="hi">Hindi (हिंदी)</option>
-                <option value="en">English</option>
-                <option value="ta">Tamil (தமிழ்)</option>
-                <option value="te">Telugu (తెలుగు)</option>
+                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
                 <option value="bn">Bengali (বাংলা)</option>
+                <option value="gu">Gujarati (ગુજરાતી)</option>
+                <option value="mr">Marathi (मराठी)</option>
               </select>
 
               <Button

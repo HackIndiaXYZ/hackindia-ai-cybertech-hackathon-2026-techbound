@@ -7,7 +7,7 @@
  */
 export * from './types.js';
 export * from './constants.js';
-export { clamp, realScheduler, performanceClock } from './util.js';
+export { clamp, realScheduler, performanceClock, humanizeClipId } from './util.js';
 export { isWebGLAvailable } from './webgl.js';
 export { resolveAvatarAsset, type AvatarAssetResolution, type AssetResolutionInput } from './assetResolver.js';
 export { AvatarLoader, type AvatarLoadOutcome, type AvatarLoadRequest } from './avatarLoader.js';

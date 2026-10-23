@@ -16,7 +16,7 @@ function makeConcept(): IslConcept {
     conceptId: 'c1',
     sourceText: 'hello there',
     normalizedMeaning: 'greeting',
-    gestureIds: ['wave', 'nonexistent-sign'],
+    gestureIds: ['sign-thank', 'nonexistent-sign'],
     ordering: 0,
     confidence: 0.5,
     facialExpression: 'affirmative',
@@ -70,7 +70,7 @@ describe('AvatarController (§17 facade over a fake rig)', () => {
     expect(adapter.playedClips).toHaveLength(1);
   });
 
-  it('maps a Phase 3A concept into queued commands and surfaces unrecognized gestures', () => {
+  it('maps a translated concept into queued commands and surfaces unrecognized gestures', () => {
     const { controller } = build();
     const result = controller.enqueueConcept(makeConcept());
     expect(result.accepted).toBe(2);

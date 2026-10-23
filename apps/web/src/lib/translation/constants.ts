@@ -1,6 +1,6 @@
 /**
- * Tunables for the Phase 3A translation module. Kept in one place so the
- * prototype's behavior is adjustable and testable without hunting through logic.
+ * Tunables for the translation module. Kept in one place so the pipeline's
+ * behavior is adjustable and testable without hunting through logic.
  * Nothing here asserts an accuracy claim — these are operating defaults for a
  * curated rule-based glossary (§16), not a trained translator.
  */
@@ -76,3 +76,12 @@ export const NEGATION_MARKERS = [
   'mana',
   'without',
 ] as const;
+
+/**
+ * English function words ISL simply does not sign. Articles and the plain
+ * genitive preposition carry no content a Deaf gloss would keep, so they are
+ * dropped instead of being spelled letter by letter (fingerspelling a "the" is
+ * not a sign, it is noise). They are also not reported as unsupported words,
+ * because nothing failed to match — the word is deliberately not signed.
+ */
+export const UNIGNED_FUNCTION_WORDS = ['the', 'a', 'an', 'of'] as const;

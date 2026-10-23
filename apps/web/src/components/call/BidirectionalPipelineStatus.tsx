@@ -1,4 +1,5 @@
 import React from 'react';
+import { AVATAR_SIGN_COUNT } from './SupportedVocabularyModal.js';
 
 export type PipelineAsyncState =
   | 'idle'
@@ -165,7 +166,11 @@ export const BidirectionalPipelineStatus: React.FC<BidirectionalPipelineStatusPr
             {avatarActive
               ? avatarPhase === 'unsupported'
                 ? 'WebGL Unavailable'
-                : 'Active (38 signs + A–Z fingerspell)'
+                : avatarPhase === 'error'
+                  ? 'Could not start'
+                  : avatarPhase === 'initializing'
+                    ? 'Loading avatar…'
+                    : `Active (${AVATAR_SIGN_COUNT} word signs + A–Z fingerspell)`
               : 'Hidden (Click "Show ISL Avatar")'}
           </span>
         </div>

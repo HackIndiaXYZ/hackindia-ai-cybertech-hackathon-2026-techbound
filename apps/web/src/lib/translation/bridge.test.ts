@@ -30,15 +30,32 @@ function representation(concepts: IslConcept[]): IslIntermediateRepresentation {
 }
 
 describe('translation → avatar bridge (§17)', () => {
-  it('maps recognized placeholder gestures and threads a running sequence index', () => {
+  it('spells concepts that have no authentic clip and threads a running sequence index', () => {
     const { commands, unrecognized } = conceptsToCommands([
-      concept({ conceptId: 'help', gestureIds: ['raise-left'] }),
-      concept({ conceptId: 'self', gestureIds: ['point'], ordering: 1 }),
+      concept({ conceptId: 'help', sourceText: 'help', gestureIds: ['raise-left'] }),
+      concept({ conceptId: 'self', sourceText: 'I', gestureIds: ['point'], ordering: 1 }),
     ]);
-    expect(commands).toHaveLength(2);
-    expect(commands.map((c) => c.sequenceIndex)).toEqual([0, 1]);
-    expect(commands.every((c) => c.isPlaceholder)).toBe(true); // no real clip exists yet
+    // Neither dev gesture has keyframes, so both words are spelled with real
+    // A–Z handshapes: h-e-l-p then i.
+    expect(commands.map((c) => c.gestureId)).toEqual([
+      'fingerspell-h',
+      'fingerspell-e',
+      'fingerspell-l',
+      'fingerspell-p',
+      'fingerspell-i',
+    ]);
+    expect(commands.map((c) => c.sequenceIndex)).toEqual([0, 1, 2, 3, 4]);
+    expect(commands.every((c) => c.isPlaceholder)).toBe(false); // real handshapes exist
     expect(unrecognized).toEqual([]);
+  });
+
+  it('passes an authentic clip through untouched instead of spelling it', () => {
+    const { commands } = conceptsToCommands([
+      concept({ conceptId: 'thank', sourceText: 'thank', gestureIds: ['sign-thank'] }),
+    ]);
+    expect(commands).toHaveLength(1);
+    expect(commands[0].gestureId).toBe('sign-thank');
+    expect(commands[0].isPlaceholder).toBe(false);
   });
 
   it('reports an unknown gesture id rather than fabricating a sign', () => {
@@ -49,8 +66,9 @@ describe('translation → avatar bridge (§17)', () => {
   it('builds a relay-ready avatar:command payload from a representation', () => {
     const payload = representationToCommandPayload(representation([concept()]), 'user-1');
     expect(payload.participantUserId).toBe('user-1');
-    expect(payload.commands).toHaveLength(1);
-    expect(payload.commands[0].gestureId).toBe('raise-left');
+    // "help" has no word clip, so the payload carries its fingerspelling.
+    expect(payload.commands).toHaveLength(4);
+    expect(payload.commands[0].gestureId).toBe('fingerspell-h');
     expect(Array.isArray(payload.unrecognized)).toBe(true);
   });
 });

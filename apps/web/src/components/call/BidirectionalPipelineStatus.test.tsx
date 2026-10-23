@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { BidirectionalPipelineStatus } from './BidirectionalPipelineStatus.js';
+import { AVATAR_SIGN_COUNT } from './SupportedVocabularyModal.js';
 
 describe('BidirectionalPipelineStatus Component (§29 async states)', () => {
   it('renders idle state for both pipelines correctly', () => {
@@ -41,7 +42,31 @@ describe('BidirectionalPipelineStatus Component (§29 async states)', () => {
     expect(screen.getByText('⚡ 140ms')).toBeInTheDocument();
     expect(screen.getByText('namaste')).toBeInTheDocument();
     expect(screen.getByText('(92%)')).toBeInTheDocument();
-    expect(screen.getByText('Active (38 signs + A–Z fingerspell)')).toBeInTheDocument();
+    // Derived from the same list the vocabulary modal renders, so this cannot
+    // drift into advertising more than the avatar can sign.
+    expect(screen.getByText(`Active (${AVATAR_SIGN_COUNT} word signs + A–Z fingerspell)`)).toBeInTheDocument();
+  });
+
+  it('labels the avatar honestly while it is loading or failed rather than claiming it is active', () => {
+    render(
+      <BidirectionalPipelineStatus
+        signState="idle"
+        speechState="idle"
+        avatarActive={true}
+        avatarPhase="initializing"
+      />
+    );
+    expect(screen.getByText('Loading avatar…')).toBeInTheDocument();
+
+    render(
+      <BidirectionalPipelineStatus
+        signState="idle"
+        speechState="idle"
+        avatarActive={true}
+        avatarPhase="error"
+      />
+    );
+    expect(screen.getByText('Could not start')).toBeInTheDocument();
   });
 
   it('renders low-confidence warning badge when recognition confidence is below 60%', () => {

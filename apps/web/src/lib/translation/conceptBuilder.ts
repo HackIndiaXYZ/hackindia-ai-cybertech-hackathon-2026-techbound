@@ -4,10 +4,19 @@
  * become an explicit fallback concept that carries NO gesture ids — so the avatar
  * simply skips it rather than animating a made-up "sign" (§16 "unsupported words
  * handled safely"). The source word is preserved and surfaced as unsupported.
+ *
+ * Two words are deliberately kept out of the gloss, because a Deaf glosser would
+ * drop them: articles / the plain genitive preposition carry nothing to sign, and
+ * the copula ("is", "are", "hai") is implied by the sentence itself and only kept
+ * when there is no other content left to sign.
  */
 import type { DraftConcept, TermMatch, Token } from './types.js';
-import { TRANSLATION } from './constants.js';
+import { TRANSLATION, UNIGNED_FUNCTION_WORDS } from './constants.js';
 import { clamp, round2 } from './util.js';
+
+const UNIGNED = new Set<string>(UNIGNED_FUNCTION_WORDS);
+/** The glossary concept id behind "is / am / are / was / were / है". */
+const COPULA_CONCEPT = 'be';
 
 function clampTiming(ms: number): number {
   if (!Number.isFinite(ms) || ms <= 0) return TRANSLATION.DEFAULT_TIMING_MS;
@@ -28,10 +37,13 @@ export interface BuiltConcepts {
 export function buildConcepts(matches: readonly TermMatch[], tokens: readonly Token[]): BuiltConcepts {
   const drafts: DraftConcept[] = [];
   const unsupported: string[] = [];
+  /** Positions of copula drafts, so they can be dropped without shuffling the rest. */
+  const copulas: number[] = [];
 
   for (const match of matches) {
     const sourceText = spanText(match.token, match.span, tokens);
     if (match.entry) {
+      if (match.entry.conceptId === COPULA_CONCEPT) copulas.push(drafts.length);
       drafts.push({
         concept: {
           conceptId: match.entry.conceptId,
@@ -48,6 +60,9 @@ export function buildConcepts(matches: readonly TermMatch[], tokens: readonly To
         isFallback: false,
       });
     } else {
+      // A word ISL never signs: not a match failure, so it is not reported as
+      // unsupported and it never reaches the avatar as a letter-by-letter spell.
+      if (UNIGNED.has(match.token.surface)) continue;
       // Safe fallback: present in the IR + surfaced with fingerspelling fallback for unrecognized alphabetic words
       unsupported.push(match.token.surface);
       const isAlphabetic = /^[a-z]+$/i.test(match.token.surface);
@@ -71,6 +86,11 @@ export function buildConcepts(matches: readonly TermMatch[], tokens: readonly To
         isFallback: true,
       });
     }
+  }
+
+  // Drop "is/are" whenever the sentence already has something to sign.
+  if (drafts.length > copulas.length) {
+    for (const index of copulas.reverse()) drafts.splice(index, 1);
   }
 
   return { drafts, unsupported };

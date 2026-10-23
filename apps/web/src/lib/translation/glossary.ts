@@ -6,10 +6,19 @@
  * gesture ids used to exercise the avatar.
  *
  * HONESTY — read this before touching anything else:
- *  - The `gestureIds` are the Phase 2D placeholder development animations
- *    (wave / raise-left / raise-right / open / close / point). They are generic
- *    motion primitives chosen to make the pipeline visible. They are NOT Indian
- *    Sign Language signs and must never be presented as such (plan §10, Rule #14).
+ *  - `gestureIds` come in two kinds and they must never be conflated:
+ *      * Authentic ISL bone keyframes, served from the sign registry: the
+ *        a–z fingerspelling handshapes plus the word signs (thank, please,
+ *        how-are-you, I/self, he, she, it, we, they, you, hello, alright,
+ *        good morning/afternoon/evening/night, home, person, time). The word
+ *        set is a port of MediaPipe-extracted keyframes from real ISL reference
+ *        videos (MIT-licensed "Sign Kit" dataset — see signKitSigns.ts).
+ *      * Generic development motion primitives (wave / raise-left / raise-right
+ *        / open / close / point) chosen to keep the pipeline visible. They are
+ *        NOT Indian Sign Language and must never be presented as such (plan §10,
+ *        Rule #14). Every command carries `isPlaceholder`, derived from whether
+ *        the registry actually has keyframes for that clip, so the UI can label
+ *        the difference instead of over-claiming.
  *  - This is a hand-authored word/concept list, NOT a trained ISL translator and
  *    NOT an authoritative ISL dictionary. Real ISL is a full language with
  *    grammar, space, mouthing and non-manual markers a flat glossary cannot
@@ -31,9 +40,10 @@ const G = (
 
 export const DEFAULT_GLOSSARY: readonly GlossaryEntry[] = Object.freeze([
   // Politeness / social
-  G('greet', ['hello', 'hi', 'namaste', 'नमस्ते', 'नमस्कार'], 'a greeting', 'politeness', ['sign-namaste'], 'affirmative', 950),
-  G('thank', ['thank', 'thanks', 'thank you', 'shukriya', 'dhanyavad', 'धन्यवाद'], 'gratitude', 'politeness', ['sign-thank'], 'affirmative', 900),
-  G('please', ['please', 'kripya', 'कृपया'], 'a polite request', 'politeness', ['sign-please'], 'neutral', 750),
+  G('greet', ['hello', 'hi', 'hey', 'helo'], 'a greeting', 'politeness', ['sign-hello'], 'affirmative', 1300),
+  G('namaste', ['namaste', 'namaskar', 'नमस्ते', 'नमस्कार'], 'a respectful greeting', 'politeness', ['sign-namaste'], 'affirmative', 950),
+  G('thank', ['thank', 'thanks', 'thank you', 'shukriya', 'dhanyavad', 'धन्यवाद'], 'gratitude', 'politeness', ['sign-thank'], 'affirmative', 1300),
+  G('please', ['please', 'kripya', 'कृपया'], 'a polite request', 'politeness', ['sign-please'], 'neutral', 1350),
   G('sorry', ['sorry', 'maaf', 'shama', 'क्षमा', 'माफ'], 'an apology', 'feeling', ['sign-sorry'], 'negative', 850),
 
   // Affirmation / negation
@@ -41,9 +51,9 @@ export const DEFAULT_GLOSSARY: readonly GlossaryEntry[] = Object.freeze([
   G('no', ['no', 'not', 'do not', 'does not', 'did not', "don't", "doesn't", "didn't", 'nahi', 'nahin', 'नहीं', 'नही'], 'negation / refusal', 'negation', ['sign-no'], 'negative', 750),
 
   // Pronouns / reference
-  G('self', ['i', 'me', 'my', 'mine', 'main', 'mujhe', 'muje', 'मैं', 'मेरा', 'मुझे'], 'the speaker', 'pronoun', ['sign-self'], 'neutral', 650),
+  G('self', ['i', 'me', 'my', 'mine', 'main', 'mujhe', 'muje', 'मैं', 'मेरा', 'मुझे'], 'the speaker', 'pronoun', ['sign-self'], 'neutral', 1200),
   G('you', ['you', 'your', 'yours', 'tum', 'aap', 'tom', 'तुम', 'आप', 'तुम्हारा'], 'the person addressed', 'pronoun', ['sign-you'], 'neutral', 650),
-  G('we', ['we', 'us', 'our', 'hum', 'हम', 'हमारा'], 'the speaker and others', 'pronoun', ['open'], 'neutral', 600),
+  G('we', ['we', 'us', 'our', 'hum', 'हम', 'हमारा'], 'the speaker and others', 'pronoun', ['sign-we'], 'neutral', 1400),
   G('demonstrative', ['this', 'that', 'these', 'those', 'ye', 'wo', 'यह', 'वह', 'ये', 'वो'], 'a pointed referent', 'other', ['point'], 'emphasis', 550),
 
   // Question words (drive question non-manual markers)
@@ -133,7 +143,7 @@ export const DEFAULT_GLOSSARY: readonly GlossaryEntry[] = Object.freeze([
   G('street', ['street', 'road', 'sadak', 'सड़क', 'रास्ता'], 'a public thoroughfare', 'place', ['sign-street'], 'neutral', 750),
   G('shoe', ['shoe', 'shoes', 'joota', 'joote', 'जूता', 'जूते'], 'footwear', 'noun', ['sign-shoe'], 'neutral', 700),
   G('yellow', ['yellow', 'peela', 'pila', 'पीला'], 'yellow color', 'adjective', ['sign-yellow'], 'neutral', 650),
-  G('how-are-you', ['how are you', 'how r u', 'aap kaise hain', 'kya haal hai', 'आप कैसे हैं', 'क्या हाल है'], 'inquiry into well-being', 'politeness', ['sign-how-are-you'], 'question', 900),
+  G('how-are-you', ['how are you', 'how r u', 'aap kaise hain', 'kya haal hai', 'आप कैसे हैं', 'क्या हाल है'], 'inquiry into well-being', 'politeness', ['sign-how-are-you'], 'question', 1500),
 
   G('and', ['and', 'aur', 'और'], 'addition', 'connector', ['open'], 'neutral', 500),
   G('but', ['but', 'lekin', 'par', 'लेकिन', 'पर'], 'contrast', 'connector', ['close'], 'neutral', 550),
@@ -152,6 +162,20 @@ export const DEFAULT_GLOSSARY: readonly GlossaryEntry[] = Object.freeze([
   G('heavy', ['heavy', 'bhaari', 'bhari', 'wazani', 'भारी', 'वज़नी'], 'great weight or burden', 'adjective', ['sign-heavy'], 'emphasis', 750),
   G('stand', ['stand', 'standing', 'khade', 'khada', 'खड़े', 'खड़ा'], 'to be on feet', 'verb', ['sign-stand'], 'neutral', 750),
   G('walk', ['walk', 'walking', 'chalo', 'chalna', 'चलो', 'चलना', 'घूमना'], 'to advance on foot', 'verb', ['sign-walk'], 'neutral', 800),
+
+  // Pronouns + time-of-day greetings backed by the ported authentic keyframes.
+  // Latin + selected romanized forms only: 'वह' / 'वो' stay with `demonstrative`
+  // because the glossary has no gendered third-person pronoun to split them into.
+  G('he', ['he', 'him', 'his'], 'a male person referred to', 'pronoun', ['sign-he'], 'neutral', 1300),
+  G('she', ['she', 'her'], 'a female person referred to', 'pronoun', ['sign-she'], 'neutral', 1500),
+  G('it', ['it'], 'a thing referred to', 'pronoun', ['sign-it'], 'neutral', 1350),
+  G('they', ['they', 'them', 'their', 'theirs', 'unhon', 'unko', 'वे', 'उन्हें', 'उनका'], 'people referred to', 'pronoun', ['sign-they'], 'neutral', 1500),
+  G('you-plural', ['you all', 'you guys', 'aap sab', 'tum sab', 'aap log', 'आप सब', 'तुम सब', 'आप लोग'], 'more than one person addressed', 'pronoun', ['sign-you-plural'], 'neutral', 1400),
+  G('alright', ['alright', 'ok', 'okay', 'theek', 'thik', 'ठीक', 'ठीक है'], 'acceptance / it is fine', 'other', ['sign-alright'], 'affirmative', 1500),
+  G('good-morning', ['good morning', 'suprabhat', 'सुप्रभात', 'शुभ प्रभात'], 'a morning greeting', 'politeness', ['sign-good-morning'], 'affirmative', 1500),
+  G('good-afternoon', ['good afternoon', 'shubh dopahar', 'शुभ दोपहर'], 'an afternoon greeting', 'politeness', ['sign-good-afternoon'], 'affirmative', 1400),
+  G('good-evening', ['good evening', 'shubh sandhya', 'शुभ संध्या'], 'an evening greeting', 'politeness', ['sign-good-evening'], 'affirmative', 1400),
+  G('good-night', ['good night', 'shubh ratri', 'शुभ रात्रि', 'गुड नाइट'], 'a farewell / rest greeting', 'politeness', ['sign-good-night'], 'affirmative', 1500),
 ]);
 
 

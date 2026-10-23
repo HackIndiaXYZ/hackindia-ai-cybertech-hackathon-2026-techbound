@@ -17,8 +17,8 @@ const loaderMeta: Record<AvatarLoaderStatus, { tone: 'neutral' | 'info' | 'succe
   idle: { tone: 'neutral', label: 'Avatar not ready' },
   loading: { tone: 'info', label: 'Loading avatar…' },
   loaded: { tone: 'success', label: 'GLB avatar loaded' },
-  placeholder: { tone: 'warning', label: 'Placeholder avatar' },
-  'asset-missing': { tone: 'warning', label: 'Placeholder avatar (no GLB)' },
+  placeholder: { tone: 'warning', label: 'Procedural rig active' },
+  'asset-missing': { tone: 'warning', label: 'Procedural rig (no GLB)' },
   error: { tone: 'danger', label: 'Avatar failed to load' },
 };
 
@@ -31,15 +31,15 @@ function orDash(value: number | null): string {
 }
 
 /**
- * Phase 3C acceptance surface (plan §18): a standalone, no-call translator that
- * composes the existing seams — 2C dictation, 3A rule-based translation and the 2D
- * avatar — behind a clean state machine. It prioritises a huge readable transcript,
+ * Standalone, no-call translator surface (plan §18): it composes the existing
+ * seams — on-device dictation, rule-based translation and the signing avatar —
+ * behind a clean state machine. It prioritises a huge readable transcript,
  * avatar visibility, minimal controls and accessible status feedback, and adds a
  * public-space / event mode for presentations.
  *
  * Honesty, shown rather than asserted: the translation is the curated rule-based
- * glossary prototype and the avatar motions are Phase 2D development placeholders,
- * so both are badged; transcript confidence is shown as "not reported" when the
+ * glossary and only part of the vocabulary has authentic ISL keyframes, so both
+ * are badged; transcript confidence is shown as "not reported" when the
  * provider does not emit it; and unsupported words are surfaced, never smoothed over.
  */
 export function StandaloneTranslator() {
@@ -70,9 +70,9 @@ export function StandaloneTranslator() {
         </div>
         {!t.eventMode && (
           <div className="flex flex-wrap items-center gap-3">
-            <Badge tone="info">Rule-based glossary prototype — not a trained translator</Badge>
+            <Badge tone="info">Rule-based glossary — not a trained translator</Badge>
             {ready && avatar.rig?.isPlaceholder && (
-              <Badge tone="warning">Avatar motions are development placeholders, not ISL signs</Badge>
+              <Badge tone="warning">Procedural rig — its motions are not ISL signs</Badge>
             )}
             {result?.lowConfidence && <Badge tone="warning">Low confidence / partial coverage</Badge>}
             <Badge tone="neutral">No call required — processed on this device</Badge>
@@ -169,8 +169,8 @@ export function StandaloneTranslator() {
           {!t.eventMode && (
             <p className="text-xs text-clay-muted">
               The avatar signs the translated concepts through the existing <code>avatar:command</code> contract.
-              FPS and rendering are verified only in a real browser; the motions are generic development
-              placeholders (§10), not validated ISL signs.
+              Words with real ISL keyframes are signed stage by stage; the rest fall back to clearly-labelled
+              approximate motion.
             </p>
           )}
         </section>
@@ -218,12 +218,13 @@ export function StandaloneTranslator() {
           <Card className="flex flex-col gap-2">
             <h2 className="text-lg font-semibold text-clay-ink">About this mode</h2>
             <p className="text-sm text-clay-muted">
-              Standalone translator mode (§18) turns speech or typed text into ISL concepts and shows them on the
-              avatar — no peer-to-peer call needed. It is the rule-based glossary prototype driving placeholder
-              avatar animations, not a production ISL translator, so nothing here is authoritative ISL. Microphone
-              audio is never uploaded — recognition and translation run in your browser. Finished texts and
-              translations are only stored to your account history when your storage consent is on (Settings &gt; Data
-              &amp; consent); the list above is always session-only.
+              Standalone translator mode turns speech or typed text into ISL concepts and shows them on the avatar —
+              no peer-to-peer call needed. It runs on the curated rule-based glossary, and only part of the
+              vocabulary has authentic ISL word keyframes, so nothing here is authoritative ISL: words without a
+              validated sign are either spelled out letter by letter, shown as approximate motion, or listed as
+              unsupported. Microphone audio is never uploaded — recognition and translation run in your browser.
+              Finished texts and translations are only stored to your account history when your storage consent is
+              on (Settings &gt; Data &amp; consent); the list above is always session-only.
             </p>
           </Card>
         </>

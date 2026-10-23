@@ -33,6 +33,14 @@ export interface TtsApi {
   available: boolean;
   providerName: string;
   keepsSynthesisOnDevice: boolean;
+  /**
+   * Which engine can actually produce audio right now: `local` for a provider
+   * that is on-device by nature, `pending` while a server-backed provider's
+   * reachability probe is in flight, then `server` or `browser`.
+   */
+  engineStatus: 'local' | 'pending' | 'server' | 'browser';
+  /** Why the engine is what it is, when there is a reason to state. */
+  engineReason: string | null;
   capabilities: TtsCapabilities;
   voices: TtsVoice[];
   selectedVoice: TtsVoice | null;
@@ -118,6 +126,33 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
     return typeof p?.isUsingFallback === 'function' ? Boolean(p.isUsingFallback()) : false;
   });
   const [fallbackReason, setFallbackReason] = useState<string | null>(null);
+  const [engineStatus, setEngineStatus] = useState<TtsApi['engineStatus']>(() =>
+    typeof (provider as unknown as { probeHealth?: unknown } | null)?.probeHealth === 'function' ? 'pending' : 'local',
+  );
+  const [engineReason, setEngineReason] = useState<string | null>(null);
+
+  // Server-backed engines are only claimed once the service has confirmed itself.
+  useEffect(() => {
+    const p = provider as unknown as
+      | { probeHealth?: () => Promise<'server' | 'browser'>; engineReason?: string | null }
+      | null;
+    if (!p || typeof p.probeHealth !== 'function') {
+      setEngineStatus('local');
+      setEngineReason(null);
+      return;
+    }
+    let live = true;
+    void p.probeHealth().then((state) => {
+      if (!live) return;
+      setEngineStatus(state);
+      setEngineReason(p.engineReason ?? null);
+      // The catalog the provider can honour just changed with the verdict.
+      if (provider) setVoices(provider.listVoices());
+    });
+    return () => {
+      live = false;
+    };
+  }, [provider]);
 
   // Keep the voice list honest: browsers populate voices asynchronously.
   useEffect(() => {
@@ -135,6 +170,8 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
     const unsub = p.onFallbackChange((active, reason) => {
       setIsFallback(active);
       setFallbackReason(reason);
+      // Voices and capabilities follow whichever engine is now speaking.
+      if (provider) setVoices(provider.listVoices());
     });
     return unsub;
   }, [provider]);
@@ -187,6 +224,8 @@ export function useTts(args: UseTtsArgs = {}): TtsApi {
     available: provider?.isSupported() ?? false,
     providerName: provider?.name ?? 'none',
     keepsSynthesisOnDevice: provider?.keepsSynthesisOnDevice ?? false,
+    engineStatus,
+    engineReason,
     capabilities: provider?.getCapabilities() ?? NO_CAPABILITIES,
     voices,
     selectedVoice: selection.voice,

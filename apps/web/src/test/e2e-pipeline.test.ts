@@ -25,7 +25,10 @@ describe('End-to-End ISL Pipeline (Input -> Translation -> Gloss -> Avatar Execu
     });
 
     expect(allCommands.length).toBeGreaterThan(0);
-    expect(allCommands[0].gestureId).toBe('raise-left'); // yesterday
+    // "yesterday" has no word keyframe yet, so it is spelled with real A-Z
+    // handshapes; every command in this sentence is therefore a genuine clip.
+    expect(allCommands[0].gestureId).toBe('fingerspell-y');
+    expect(allCommands.every((c) => c.isPlaceholder === false)).toBe(true);
 
     // 3. AvatarAnimationController executes sequential playback
     const adapter = new FakeAvatarAdapter();

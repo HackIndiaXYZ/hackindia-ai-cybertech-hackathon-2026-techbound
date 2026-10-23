@@ -60,7 +60,10 @@ export function Call() {
   const [islRecognitionOn, setIslRecognitionOn] = useState(true);
   const [showVocabulary, setShowVocabulary] = useState(false);
 
-  const avatar = useAvatar();
+  // The interpreter panel is mounted on demand, so the engine may only start once
+  // the canvas exists — otherwise it initialises against a null canvas and never
+  // retries, leaving an empty panel for the whole call.
+  const avatar = useAvatar({ enabled: showAvatar });
 
   const engine = useCall({ sessionId: effectiveId, displayName, selfUserId: user?.id ?? '' });
 
@@ -333,7 +336,7 @@ export function Call() {
             onClick={() => setShowVocabulary(true)}
             aria-label="View supported ISL vocabulary scope"
           >
-            📖 Vocabulary (38 Signs)
+            📖 Supported vocabulary
           </Button>
           <ConnectionIndicator state={call.state} />
           <span className="tabular-nums text-sm text-clay-muted" aria-label="Call duration">
@@ -458,6 +461,11 @@ export function Call() {
               <span className="text-emerald-300">({Math.round(gestureRec.lastDetection.confidence * 100)}%)</span>
             </div>
           )}
+          {islRecognitionOn && gestureRec.errorMessage && (
+            <div className="absolute inset-x-2 bottom-2 z-10 rounded bg-black/80 px-2.5 py-1.5 text-xs font-medium text-amber-200 shadow backdrop-blur-sm">
+              {gestureRec.errorMessage}
+            </div>
+          )}
         </div>
         {showAvatar && (
           <div className="clay-surface relative flex aspect-video flex-col overflow-hidden rounded-clay bg-clay-soft">
@@ -474,6 +482,11 @@ export function Call() {
             {avatar.phase === 'unsupported' && (
               <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-clay-muted">
                 WebGL not supported for 3D avatar in this browser.
+              </div>
+            )}
+            {avatar.phase === 'error' && (
+              <div className="absolute inset-0 flex items-center justify-center p-4 text-center text-xs text-clay-muted">
+                {avatar.error ?? 'The 3D avatar could not start on this device.'}
               </div>
             )}
           </div>

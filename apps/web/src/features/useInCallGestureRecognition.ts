@@ -18,6 +18,8 @@ export interface InCallGestureRecognitionApi {
   canvasRef: RefObject<HTMLCanvasElement>;
   active: boolean;
   engineStatus: 'online' | 'fallback' | 'offline';
+  /** Why recognition stopped, when it did; null while it is running. */
+  errorMessage: string | null;
   latencyMs: number;
   lastDetection: GestureDetection | null;
   trained: boolean;
@@ -42,6 +44,7 @@ export function useInCallGestureRecognition({
 
   const [active, setActive] = useState(false);
   const [engineStatus, setEngineStatus] = useState<'online' | 'fallback' | 'offline'>('online');
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState(0);
   const [lastDetection, setLastDetection] = useState<GestureDetection | null>(null);
   const [trained, setTrained] = useState(true);
@@ -97,6 +100,7 @@ export function useInCallGestureRecognition({
         hiddenVideoRef.current = null;
       }
       setActive(false);
+      setErrorMessage(null);
       return;
     }
 
@@ -132,7 +136,19 @@ export function useInCallGestureRecognition({
     });
     providerRef.current = provider;
 
-    const tracker = new MediaPipeHandTracker();
+    const tracker = new MediaPipeHandTracker({
+      // One honest label instead of an endless frame-by-frame exception storm.
+      onError: (message) => {
+        if (isCancelled) return;
+        setErrorMessage(message);
+        setEngineStatus('offline');
+        setActive(false);
+        if (rafRef.current) {
+          cancelAnimationFrame(rafRef.current);
+          rafRef.current = null;
+        }
+      },
+    });
     trackerRef.current = tracker;
 
     tracker.onFrame((obs) => {
@@ -179,6 +195,7 @@ export function useInCallGestureRecognition({
     canvasRef,
     active,
     engineStatus,
+    errorMessage,
     latencyMs,
     lastDetection,
     trained,

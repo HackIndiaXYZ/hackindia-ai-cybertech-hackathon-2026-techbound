@@ -5,19 +5,19 @@ const modes: Array<{ title: string; body: string; status: string; icon: IconName
   {
     title: 'Real-time communication',
     body: 'Live two-way conversation between ISL signers and speech users, with captions and gesture-to-text translation in the moment.',
-    status: 'Planned · Phase 2',
+    status: 'Available now',
     icon: 'call',
   },
   {
     title: 'Standalone translator',
     body: 'Convert a signed phrase to text and speech, or spoken words to on-screen signing — no call required.',
-    status: 'Planned · Phase 3',
+    status: 'Available now',
     icon: 'standalone',
   },
   {
     title: 'Group communication',
     body: 'Multi-participant rooms where every voice and every sign is captioned for everyone in the room.',
-    status: 'Planned · Phase 4',
+    status: 'Available now · up to 5 people',
     icon: 'contacts',
   },
 ];
@@ -49,7 +49,7 @@ export function Landing() {
         <div className="flex flex-col items-start gap-6">
           <span className="inline-flex items-center gap-2 rounded-pill border-2 border-clay-primary/60 px-3 py-1 text-sm font-bold text-clay-primary">
             <span className="h-2 w-2 rounded-full bg-clay-primary" aria-hidden="true" />
-            Accessibility-first · Phase 1 foundation
+            Accessibility-first · running end to end
           </span>
           <h1 className="max-w-xl text-4xl font-bold leading-[1.08] text-clay-ink sm:text-5xl lg:text-[3.4rem]">
             Every sign heard.
@@ -166,9 +166,14 @@ export function Landing() {
       <Card className="flex flex-col gap-2 border-clay-edge/60 bg-clay-soft/50 p-6 sm:p-8">
         <h2 className="text-lg font-bold">Current status — said plainly</h2>
         <p className="text-clay-muted">
-          This phase ships the engineering foundation: application shell, accessible design system,
-          authentication and the real-time/signaling scaffolding. Live translation and calling arrive in
-          later phases and stay clearly labelled until then.
+          Everything above works in this build: one-to-one and group calling with live captions, speech or typed
+          text translated into ISL gloss order and signed by the 3D avatar, hand-gesture recognition turned into
+          text, and read-aloud voice.
+        </p>
+        <p className="text-clay-muted">
+          What is still limited, also stated plainly: translation runs on a curated rule-based glossary rather
+          than a trained model, and only part of the vocabulary has authentic ISL word keyframes behind it.
+          Anywhere an approximate motion is shown, the interface labels it as approximate instead of pretending.
         </p>
       </Card>
     </div>

@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Button } from '../ui/index.js';
+import { DEFAULT_GLOSSARY } from '../../lib/translation/index.js';
+import { PLACEHOLDER_GESTURE_REGISTRY } from '../../lib/avatar/index.js';
 
 export interface SupportedVocabularyModalProps {
   isOpen: boolean;
@@ -15,8 +17,29 @@ export interface VocabularyItem {
   description: string;
 }
 
+/**
+ * Does this rig actually have an authentic keyframe clip for the term? Resolved
+ * from the real glossary → clip registry chain instead of a hand-set flag, so the
+ * modal can never advertise a sign the avatar cannot perform. A term counts only
+ * when every clip its glossary entry maps to is a real keyframe clip; a term that
+ * would be fingerspelled is reported as not animated, because it is spelled, not
+ * signed.
+ */
+function hasAuthenticClip(term: string): boolean {
+  const keys = term
+    .toLowerCase()
+    .split(' / ')
+    .map((part) => part.trim());
+  for (const key of keys) {
+    const entry = DEFAULT_GLOSSARY.find((g) => g.forms.includes(key));
+    if (!entry || entry.gestureIds.length === 0) continue;
+    if (entry.gestureIds.every((id) => Boolean(PLACEHOLDER_GESTURE_REGISTRY[id]?.realClip))) return true;
+  }
+  return false;
+}
+
 // 28 dynamic ISL ML classes + additional conversational signs
-export const SUPPORTED_VOCABULARY: VocabularyItem[] = [
+const VOCABULARY_INTENT: VocabularyItem[] = [
   { term: 'City', category: 'core-sign', cameraRecognized: true, avatarAnimated: true, description: 'Buildings outline formation' },
   { term: 'Dog', category: 'core-sign', cameraRecognized: true, avatarAnimated: true, description: 'Patting motion' },
   { term: 'Hat', category: 'core-sign', cameraRecognized: true, avatarAnimated: true, description: 'Head brim touch gesture' },
@@ -56,6 +79,21 @@ export const SUPPORTED_VOCABULARY: VocabularyItem[] = [
   { term: 'Stop', category: 'conversational', cameraRecognized: true, avatarAnimated: true, description: 'Open palm chop into flat palm' },
   { term: 'Time', category: 'core-sign', cameraRecognized: true, avatarAnimated: true, description: 'Index tap on watch wrist' },
 ];
+
+/**
+ * The published list re-derives `avatarAnimated` from the rig's real keyframe
+ * registry, so the disclosed scope can never be wider than what the avatar
+ * actually signs. Terms without a keyframe clip are fingerspelled instead.
+ */
+export const SUPPORTED_VOCABULARY: VocabularyItem[] = VOCABULARY_INTENT.map((item) => ({
+  ...item,
+  avatarAnimated: item.avatarAnimated && hasAuthenticClip(item.term),
+}));
+
+/** Sign counts derived from the same data the lists render, so no surface can
+ * quote a scope wider than what is actually itemised. */
+export const CAMERA_SIGN_COUNT = SUPPORTED_VOCABULARY.filter((item) => item.cameraRecognized).length;
+export const AVATAR_SIGN_COUNT = SUPPORTED_VOCABULARY.filter((item) => item.avatarAnimated).length;
 
 export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> = ({
   isOpen,
@@ -108,7 +146,8 @@ export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> =
               </h2>
             </div>
             <p className="mt-1 text-xs text-clay-muted">
-              Honest capability disclosure (§27): 38 Curated ISL signs + A–Z Fingerspelling Fallback
+              {AVATAR_SIGN_COUNT} signs the avatar performs with real keyframes, {CAMERA_SIGN_COUNT} signs the
+              recognition service is documented to classify, and A–Z fingerspelling for everything else.
             </p>
           </div>
           <button
@@ -141,7 +180,7 @@ export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> =
               aria-selected={activeTab === 'camera'}
               onClick={() => setActiveTab('camera')}
             >
-              Camera Signs (28)
+              Camera Signs ({CAMERA_SIGN_COUNT})
             </Button>
             <Button
               size="sm"
@@ -150,7 +189,7 @@ export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> =
               aria-selected={activeTab === 'avatar'}
               onClick={() => setActiveTab('avatar')}
             >
-              3D Avatar (38)
+              Avatar Signs ({AVATAR_SIGN_COUNT})
             </Button>
             <Button
               size="sm"
@@ -193,7 +232,7 @@ export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> =
                 <h3 className="font-bold text-sm">Universal ISL Fingerspelling Engine</h3>
               </div>
               <p className="text-clay-muted leading-relaxed">
-                When a user speaks or writes words outside the 38 curated sign vocabulary, the avatar does <strong>not</strong> fail silently or freeze. Instead, it decomposes the word into alphabetic letters and animates authentic ISL fingerspelling poses:
+                When a user speaks or writes a word outside the {SUPPORTED_VOCABULARY.length} curated signs, the avatar does <strong>not</strong> fail silently or freeze. Instead, it decomposes the word into alphabetic letters and animates authentic ISL fingerspelling poses:
               </p>
               <div className="grid grid-cols-6 sm:grid-cols-9 gap-2 text-center font-mono font-semibold pt-1">
                 {'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map((char) => (
@@ -254,13 +293,20 @@ export const SupportedVocabularyModal: React.FC<SupportedVocabularyModalProps> =
         </div>
 
         {/* Footer with honest scope note */}
-        <div className="pt-3 border-t border-clay-soft flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-clay-muted">
-          <span>
-            💡 Any unlisted words automatically fallback to <strong>ISL letter-by-letter fingerspelling</strong>.
-          </span>
-          <Button size="sm" variant="secondary" onClick={onClose}>
-            Close
-          </Button>
+        <div className="pt-3 border-t border-clay-soft flex flex-col gap-2 text-xs text-clay-muted">
+          <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center">
+            <span>
+              💡 Any unlisted words automatically fallback to <strong>ISL letter-by-letter fingerspelling</strong>.
+            </span>
+            <Button size="sm" variant="secondary" onClick={onClose}>
+              Close
+            </Button>
+          </div>
+          <p>
+            The <strong>3D Rig</strong> badge is verified against this build's keyframe registry. The
+            <strong> Vision</strong> badge is the recognition service's own documented scope — its trained
+            vocabulary lives inside model files that the browser cannot enumerate, so it is stated, not measured.
+          </p>
         </div>
       </div>
     </div>

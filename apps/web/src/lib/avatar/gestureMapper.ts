@@ -1,13 +1,20 @@
 /**
- * Maps a gesture id (or a Phase 3A ISL concept) to an AvatarAnimationCommand
- * via the gesture registry (§6 "ISL Concept → Gesture ID → Animation Clip →
- * Facial Expression → Timing → Transition"). Pure + configurable: swap the
- * registry and the same mapping produces real commands with no other change.
+ * Maps an ISL gesture id (or a translated ISL concept) to an
+ * AvatarAnimationCommand via the gesture registry (§6 "ISL Concept → Gesture ID
+ * → Animation Clip → Facial Expression → Timing → Transition"). Pure +
+ * configurable: swap the registry and the same mapping produces real commands
+ * with no other change.
  *
  * Honesty: an unrecognized gesture id never becomes a fabricated sign. It
  * resolves to a safe rest/reset command flagged as a placeholder, and the caller
  * is told the id was unrecognized so it can be surfaced (§8 "invalid commands
  * fail safely", plan §29 honesty).
+ *
+ * Coverage strategy: a word the glossary knows but the keyframe library does not
+ * is signed the way a Deaf signer actually handles an unknown word — spelled with
+ * the A–Z fingerspelling handshapes, which are real keyframes on this rig — rather
+ * than waved at with a generic development pose. Spelling is also reversible, so
+ * "words → signs" and "signs → words" stay the same mapping in both directions.
  */
 import type { AvatarAnimationCommand, IslConcept } from '@isl/shared-types';
 import {
@@ -61,14 +68,22 @@ export class GestureMapper {
     return gestureIds.map((id, i) => this.toCommand(id, startIndex + i));
   }
 
-  /** Phase 3A/5 entry point: turn an ISL concept's gesture ids into commands with fingerspelling fallback. */
+  /**
+   * Turn a translated ISL concept into commands, spelling any word that has no
+   * authentic keyframe (§ fingerspelling strategy above).
+   */
   fromConcept(concept: IslConcept, startIndex = 0): ConceptMapping {
     const commands: AvatarAnimationCommand[] = [];
     const unrecognized: string[] = [];
 
+    // A concept is spelled at most once: two keyframe-less gestures inside the
+    // same concept both stand for the same word, so a second identical handshape
+    // run would only repeat the letters without adding information.
+    let spelled = false;
+
     // 1. Direct gesture mapping when concept has gesture ids
     if (concept.gestureIds && concept.gestureIds.length > 0) {
-      concept.gestureIds.forEach((id, i) => {
+      for (const id of concept.gestureIds) {
         const { descriptor, recognized } = this.resolve(id);
         if (!recognized) unrecognized.push(id);
         // Prefer the concept's facial expression / timing over the seed defaults,
@@ -79,40 +94,71 @@ export class GestureMapper {
           facialExpression: concept.facialExpression,
           durationMs: concept.timingMs > 0 ? concept.timingMs : descriptor.durationMs,
         };
-        commands.push(this.descriptorToCommand(merged, startIndex + i));
-      });
+        // A known gesture with no keyframes behind it would animate a generic
+        // pose: spell the word instead. Unknown ids stay a safe labelled reset.
+        if (recognized && !merged.realClip && !spelled) {
+          const letters = this.spelling(concept, merged, commands.length + startIndex);
+          if (letters.length > 0) {
+            spelled = true;
+            commands.push(...letters);
+            continue;
+          }
+        }
+        if (recognized && !merged.realClip && spelled) continue;
+        commands.push(this.descriptorToCommand(merged, commands.length + startIndex));
+      }
       return { commands, unrecognized };
     }
 
-    // 2. Phase 5 fallback: ISL fingerspelling letter-by-letter for unrecognized words
-    const textToSpell = (concept.sourceText || concept.normalizedMeaning || '')
-      .toLowerCase()
-      .replace(/[^a-z]/g, '');
+    // 2. No gesture ids at all: spell the word, else report a safe rest clip.
+    const orphan = this.spelling(concept, { ...FALLBACK_DESCRIPTOR, facialExpression: concept.facialExpression }, startIndex);
+    if (orphan.length > 0) return { commands: orphan, unrecognized };
 
-    if (textToSpell.length > 0) {
-      const stepDuration = Math.max(
-        350,
-        Math.min(650, Math.round((concept.timingMs || AVATAR.DEFAULT_CLIP_DURATION_MS) / textToSpell.length)),
-      );
-
-      for (let i = 0; i < textToSpell.length; i++) {
-        const letter = textToSpell[i];
-        const gestureId = `fingerspell-${letter}`;
-        const { descriptor } = this.resolve(gestureId);
-        const letterDescriptor: GestureClipDescriptor = {
-          ...descriptor,
-          facialExpression: concept.facialExpression || 'neutral',
-          durationMs: stepDuration,
-        };
-        commands.push(this.descriptorToCommand(letterDescriptor, startIndex + i));
-      }
-    } else {
-      // Non-alphabetic or empty fallback: emit safe rest clip
-      commands.push(this.toCommand('reset', startIndex));
-      unrecognized.push(concept.conceptId);
-    }
-
+    commands.push(this.toCommand('reset', startIndex));
+    unrecognized.push(concept.conceptId);
     return { commands, unrecognized };
+  }
+
+  /**
+   * The letters to spell for a concept: the spoken word when it is Latin script,
+   * otherwise the concept's English name (Devanagari input is still an
+   * English-named concept, and ISL fingerspelling spells the English word). The
+   * glossary definition is only a last resort — a dictionary gloss is not a word
+   * anyone would spell — and the synthetic 'unknown' id is never spelled, since
+   * the real word is already in the source text. Anything left over (punctuation,
+   * non-Latin-only concepts) yields nothing and the caller falls back safely.
+   */
+  private lettersFor(concept: IslConcept): string {
+    const candidates = [concept.sourceText, concept.conceptId === 'unknown' ? '' : concept.conceptId, concept.normalizedMeaning];
+    for (const candidate of candidates) {
+      const letters = (candidate ?? '').toLowerCase().replace(/[^a-z]/g, '');
+      if (letters.length > 0) return letters;
+    }
+    return '';
+  }
+
+  /** A–Z handshape commands spelling a concept, sharing its expression + timing. */
+  private spelling(concept: IslConcept, base: GestureClipDescriptor, startIndex: number): AvatarAnimationCommand[] {
+    const letters = this.lettersFor(concept);
+    if (!letters) return [];
+
+    const stepDuration = Math.max(
+      350,
+      Math.min(650, Math.round((concept.timingMs || AVATAR.DEFAULT_CLIP_DURATION_MS) / letters.length)),
+    );
+
+    const out: AvatarAnimationCommand[] = [];
+    for (let i = 0; i < letters.length; i++) {
+      const gestureId = `fingerspell-${letters[i]}`;
+      const { descriptor } = this.resolve(gestureId);
+      out.push(
+        this.descriptorToCommand(
+          { ...descriptor, gestureId, facialExpression: base.facialExpression, durationMs: stepDuration },
+          startIndex + i,
+        ),
+      );
+    }
+    return out;
   }
 
   private descriptorToCommand(descriptor: GestureClipDescriptor, sequenceIndex: number): AvatarAnimationCommand {

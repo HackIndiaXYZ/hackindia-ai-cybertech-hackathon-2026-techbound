@@ -5,14 +5,15 @@ import { useTranslation } from '../features/useTranslation.js';
 import { useAvatar } from '../features/useAvatar.js';
 import { useLiveDictation } from '../features/useLiveDictation.js';
 import type { AvatarLoaderStatus } from '../lib/avatar/index.js';
+import { GestureMapper, humanizeClipId } from '../lib/avatar/index.js';
 
 /** Honest loader label/tone for the embedded avatar (mirrors the Avatar page). */
 const loaderMeta: Record<AvatarLoaderStatus, { tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger'; label: string }> = {
   idle: { tone: 'neutral', label: 'Avatar not ready' },
   loading: { tone: 'info', label: 'Loading avatar…' },
   loaded: { tone: 'success', label: 'GLB avatar loaded' },
-  placeholder: { tone: 'warning', label: 'Placeholder avatar' },
-  'asset-missing': { tone: 'warning', label: 'Placeholder avatar (no GLB)' },
+  placeholder: { tone: 'warning', label: 'Procedural rig active' },
+  'asset-missing': { tone: 'warning', label: 'Procedural rig (no GLB)' },
   error: { tone: 'danger', label: 'Avatar failed to load' },
 };
 
@@ -25,16 +26,39 @@ function sortConcepts(concepts: readonly IslConcept[]): IslConcept[] {
 }
 
 /**
- * Phase 3A end-to-end acceptance surface (plan §16): text or optional live
- * dictation → the rule-based translation engine → an inspectable
- * `IslIntermediateRepresentation` (ordering, non-manual markers, per-concept
- * confidence, unsupported words, measured latency) → the Phase 2D avatar.
+ * What will actually move the avatar for this concept, measured through the same
+ * mapper the avatar uses: authentic word keyframes, A–Z fingerspelling for words
+ * the keyframe library does not cover, and any remaining approximate motion.
+ */
+function signQualityOf(concept: IslConcept): { wordSigns: number; spelled: number; approximate: number } {
+  const quality = { wordSigns: 0, spelled: 0, approximate: 0 };
+  for (const command of new GestureMapper().fromConcept(concept).commands) {
+    if (command.isPlaceholder) quality.approximate += 1;
+    else if (command.gestureId.startsWith('fingerspell-')) quality.spelled += 1;
+    else quality.wordSigns += 1;
+  }
+  return quality;
+}
+
+/** Human, non-color-only description of how a concept gets signed. */
+function describeSignQuality(quality: ReturnType<typeof signQualityOf>): string {
+  const parts: string[] = [];
+  if (quality.wordSigns > 0) parts.push(`${quality.wordSigns} authentic word sign`);
+  if (quality.spelled > 0) parts.push(`${quality.spelled} letter handshape(s) spelling it`);
+  if (quality.approximate > 0) parts.push(`${quality.approximate} approximate motion`);
+  return parts.join(' · ') || 'no sign emitted';
+}
+
+/**
+ * End-to-end acceptance surface (plan §16): text or optional live dictation → the
+ * rule-based translation engine → an inspectable `IslIntermediateRepresentation`
+ * (ordering, non-manual markers, per-concept confidence, unsupported words,
+ * measured latency) → the signing avatar.
  *
  * Honesty, shown rather than asserted:
- *  - This is a CURATED RULE-BASED glossary prototype, not a trained ISL translator.
- *  - The avatar motions are the Phase 2D development placeholders and carry NO ISL
- *    meaning; a real translation would still use these same placeholder animations
- *    until validated ISL assets exist.
+ *  - This is a CURATED RULE-BASED glossary, not a trained ISL translator.
+ *  - Each concept reports how much of its motion is backed by real ISL keyframes,
+ *    so approximate word motions are visible instead of hidden (§10).
  *  - Low confidence and unsupported terms are surfaced, never smoothed over.
  */
 export function Pipeline() {
@@ -70,9 +94,9 @@ export function Pipeline() {
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold text-clay-ink">Speech → ISL Pipeline</h1>
         <div className="flex flex-wrap items-center gap-3">
-          <Badge tone="info">Rule-based glossary prototype — not a trained translator</Badge>
+          <Badge tone="info">Rule-based glossary — not a trained translator</Badge>
           {ready && avatar.rig?.isPlaceholder && (
-            <Badge tone="warning">Avatar motions are development placeholders, not ISL signs</Badge>
+            <Badge tone="warning">Procedural rig — its motions are not ISL signs</Badge>
           )}
           {result?.lowConfidence && <Badge tone="warning">Low confidence / partial coverage</Badge>}
         </div>
@@ -162,8 +186,9 @@ export function Pipeline() {
             <Button variant="ghost" onClick={avatar.reset} disabled={!ready}>Reset</Button>
           </div>
           <p className="text-xs text-clay-muted">
-            Concepts animate through the existing <code>avatar:command</code> contract. FPS and rendering are
-            verified only in a real browser; the motions shown are generic development placeholders (§10).
+            Concepts animate through the existing <code>avatar:command</code> contract. Words with real ISL
+            keyframes are signed stage by stage, and words the keyframe library does not cover are spelled out with
+            the A – Z handshapes.
           </p>
         </Card>
       </div>
@@ -191,8 +216,11 @@ export function Pipeline() {
                   <span>· timing: {concept.timingMs}ms</span>
                   <span>· conf: {pct(concept.confidence)}</span>
                   <span>
-                    · gestures: {concept.gestureIds.length > 0 ? concept.gestureIds.join(', ') : 'none (fallback)'}
+                    · gestures: {concept.gestureIds.length > 0 ? concept.gestureIds.map(humanizeClipId).join(', ') : 'none (spelled from the word)'}
                   </span>
+                  {concept.gestureIds.length > 0 && (
+                    <span>· signs: {describeSignQuality(signQualityOf(concept))}</span>
+                  )}
                   {concept.fallbackBehavior && <span className="text-clay-danger">· {concept.fallbackBehavior}</span>}
                 </div>
               </li>
@@ -210,14 +238,15 @@ export function Pipeline() {
       </Card>
 
       <Card className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold text-clay-ink">About this phase</h2>
+        <h2 className="text-lg font-semibold text-clay-ink">How this works</h2>
         <p className="text-sm text-clay-muted">
-          Phase 3A converts speech/text into contextual ISL concepts through a curated rule-based glossary — with
-          ISL-style ordering, non-manual facial markers, per-concept confidence and safe handling of unsupported
-          words — then feeds those concepts to the Phase 2D avatar via the existing command contract. It is the
-          translation foundation, not a production ISL translator: there is no trained model or validated ISL
-          dictionary in this build, so nothing here should be presented as authoritative ISL. No camera or
-          microphone audio leaves the device, and commands carry concepts only, never raw media (§15).
+          Speech and typed text are matched against a curated bilingual glossary, ordered ISL-style (topic first,
+          verb last, time and place up front), given non-manual facial markers and per-concept confidence, then fed
+          to the avatar through the same command contract the call uses. Words the glossary does not know are listed
+          as unsupported rather than invented, and a word that has no dedicated keyframe is spelled with the A–Z
+          fingerspelling handshapes — exactly what a Deaf signer does with an unfamiliar word. Each concept row below
+          says which of those the avatar is performing. No camera or microphone audio leaves the device; commands
+          carry concepts only, never raw media.
         </p>
       </Card>
     </div>

@@ -186,7 +186,21 @@ export function useGestureRecognition(args: UseGestureRecognitionArgs = {}): Ges
     video.srcObject = media.stream;
     await video.play().catch(() => undefined);
 
-    const tracker = args.createTracker ? args.createTracker() : new MediaPipeHandTracker();
+    const tracker = args.createTracker
+      ? args.createTracker()
+      : new MediaPipeHandTracker({
+          // Say it once and stop pushing frames, instead of failing silently at
+          // 60 frames a second. The camera stream is left alone on purpose: other
+          // surfaces (the call tile) still need it.
+          onError: (message) => {
+            if (rafRef.current != null) {
+              cancelAnimationFrame(rafRef.current);
+              rafRef.current = null;
+            }
+            setStatus('error');
+            setErrorMessage(message);
+          },
+        });
     const pipeline = new GestureRecognitionPipeline({
       tracker,
       classifier: new HeuristicHandShapeClassifier(),

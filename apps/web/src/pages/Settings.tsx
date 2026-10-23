@@ -52,13 +52,12 @@ function ToggleRow({ setting, title, description }: ToggleRowProps) {
   );
 }
 
-/**
- * Data & consent (§22, Phase 4A.2). The `recording` scope is what the server
- * checks before accepting transcript/translation/message writes — this switch
- * is the real gate, not decoration: with it off, the API answers 403 even if a
- * client tried to write. Only scopes the product actually enforces today are
- * shown; reserved scopes (analytics, training data) appear when they gate a
- * real feature, so the page never implies controls that do nothing.
+/** Data & consent. The `recording` scope is what the server checks before
+ * accepting transcript/translation/message writes — this switch is the real
+ * gate, not decoration: with it off, the API answers 403 even if a client tried
+ * to write. Only scopes the product actually enforces today are shown; reserved
+ * scopes (analytics, training data) appear when they gate a real feature, so the
+ * page never implies controls that do nothing.
  */
 function ConsentSection() {
   // null until the server has answered — we never display a guessed state.
@@ -138,12 +137,37 @@ function ConsentSection() {
   );
 }
 
+const CAPABILITY_LABELS: Record<ProviderStatus['capability'], string> = {
+  speech: 'Speech to text',
+  vision: 'Sign recognition',
+  translation: 'Translation',
+  tts: 'Text to speech',
+};
+
+/** Plain-English placement for the resolved backend, never an env-flag dump. */
+function runsInSentence(p: ProviderStatus): string {
+  if (!p.implemented) return `The configuration asks for “${p.configured}”, which this build does not include.`;
+  if (p.runsOn === 'browser') return 'Runs entirely in your browser — nothing is uploaded.';
+  if (p.runsOn === 'server') return 'Runs on our server.';
+  return 'Not available in this build.';
+}
+
 /**
- * Provider status (§37, Phase 4C.3, P2-6). The env flags are a request; this
- * is the answer. Every capability shows what the server actually resolved —
- * label, honesty message, and an explicit *unavailable* badge when a flag
- * names an integration that does not exist. Values come from the API only;
- * the page never mirrors config client-side and never shows a guessed state.
+ * Provider messages are the server's honest disclosure text, but they cite
+ * internal decision records (“… (ADR-016)”). A reader on this screen cannot open
+ * those, so the citation is dropped from the rendered sentence — the claim itself
+ * is never reworded, weakened or hidden.
+ */
+function readerMessage(message: string): string {
+  return message.replace(/\s*\((?:ADR|§)[^)]*\)/g, '');
+}
+
+/**
+ * Provider status. The env flags are a request; this is the answer. Every
+ * capability shows what the server actually resolved — label, honesty message,
+ * and an explicit *unavailable* badge when a flag names an integration that does
+ * not exist. Values come from the API only; the page never mirrors config
+ * client-side and never shows a guessed state.
  */
 function ProviderSection() {
   const [providers, setProviders] = useState<ProviderStatus[] | null>(null);
@@ -179,15 +203,13 @@ function ProviderSection() {
           {providers.map((p) => (
             <li key={p.capability} className="py-3">
               <div className="flex items-center justify-between gap-4">
-                <span className="font-medium text-clay-ink capitalize">{p.capability}</span>
+                <span className="font-medium text-clay-ink">{CAPABILITY_LABELS[p.capability] ?? p.capability}</span>
                 <Badge tone={p.implemented ? (p.trained ? 'success' : 'info') : 'danger'}>
                   {p.label}
                 </Badge>
               </div>
-              <p className="mt-1 text-sm text-clay-muted">{p.message}</p>
-              <p className="mt-0.5 text-xs text-clay-muted">
-                Configured: <code>{p.configured}</code> · Runs on: {p.runsOn}
-              </p>
+              <p className="mt-1 text-sm text-clay-muted">{readerMessage(p.message)}</p>
+              <p className="mt-0.5 text-xs text-clay-muted">{runsInSentence(p)}</p>
             </li>
           ))}
         </ul>
@@ -196,7 +218,7 @@ function ProviderSection() {
   );
 }
 
-/** Accessibility & preference controls (§28). Persisted to localStorage. */
+/** Accessibility & preference controls. Persisted to localStorage. */
 export function Settings() {
   const dispatch = useAppDispatch();
   const captionFontSize = useAppSelector((s) => s.settings.captionFontSize);

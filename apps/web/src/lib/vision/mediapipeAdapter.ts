@@ -21,10 +21,37 @@ export interface MediaPipeTrackerOptions {
   minDetectionConfidence?: number;
   minTrackingConfidence?: number;
   assetPath?: string;
+  /**
+   * Called exactly once if the tracker can never be made to work (assets missing,
+   * WASM aborted). The caller should label the state honestly instead of leaving
+   * the UI stuck on "Idle" while frames are thrown at a dead module.
+   */
+  onError?: (message: string) => void;
 }
 
+/**
+ * The legacy MediaPipe `Hands` solution is a single global Emscripten module, so
+ * exactly one instance may exist at a time. Frames arrive from a
+ * requestAnimationFrame loop that does not await, and React StrictMode mounts the
+ * webcam effect twice in development: without a shared in-flight promise every
+ * concurrent frame would run `new Hands()` and the second instantiation aborts
+ * the first ("Module.arguments has been replaced…"), which then throws on every
+ * remaining frame. Creation is therefore memoised, and a failure latches the
+ * tracker off instead of retrying forever.
+ *
+ * The same loop would also hand the graph a new frame while the previous frame
+ * was still being processed. MediaPipe's graph is not re-entrant — overlapping
+ * `send()` calls surface as "Calculator::Open … Graph has errors" and
+ * out-of-bounds WASM memory access — so a frame that arrives while one is in
+ * flight is dropped rather than queued. Dropping costs nothing: the tracker is
+ * temporal and the classifier samples a rolling window either way.
+ */
 export class MediaPipeHandTracker implements HandTracker {
   private hands: HandsInstance | null = null;
+  private init: Promise<HandsInstance> | null = null;
+  private inFlight = false;
+  private closed = false;
+  private failure: string | null = null;
   private readonly listeners: Array<(obs: FrameObservation) => void> = [];
 
   constructor(private readonly opts: MediaPipeTrackerOptions = {}) {}
@@ -33,8 +60,12 @@ export class MediaPipeHandTracker implements HandTracker {
     this.listeners.push(cb);
   }
 
-  private async ensure(): Promise<HandsInstance> {
-    if (this.hands) return this.hands;
+  /** Why tracking stopped, or null while it is (or may still become) healthy. */
+  getErrorMessage(): string | null {
+    return this.failure;
+  }
+
+  private async create(): Promise<HandsInstance> {
     const { Hands } = await import('@mediapipe/hands');
     const assetPath = this.opts.assetPath ?? VISION.ASSET_PATH;
     const inst = new Hands({ locateFile: (file) => `${assetPath}/${file}` });
@@ -47,13 +78,65 @@ export class MediaPipeHandTracker implements HandTracker {
       minTrackingConfidence: this.opts.minTrackingConfidence ?? VISION.MIN_TRACKING_CONFIDENCE,
     });
     inst.onResults((results) => this.handleResults(results));
+    // The panel was torn down (StrictMode, camera off) while the ~10 MB of WASM
+    // and models were still downloading. Releasing it here is what keeps a
+    // second instance from ever existing.
+    if (this.closed) {
+      await inst.close().catch(() => undefined);
+      throw new Error('Sign recognition was turned off before it finished starting.');
+    }
     this.hands = inst;
     return inst;
   }
 
+  private ensure(): Promise<HandsInstance> {
+    if (this.hands) return Promise.resolve(this.hands);
+    if (!this.init) {
+      this.init = this.create().catch((err: unknown) => {
+        this.init = null;
+        throw err;
+      });
+    }
+    return this.init;
+  }
+
+  private fail(message: string): void {
+    if (this.failure) return;
+    this.failure = message;
+    this.closed = true;
+    this.init = null;
+    this.hands = null;
+    this.opts.onError?.(message);
+  }
+
   async observe(video: HTMLVideoElement): Promise<void> {
-    const inst = await this.ensure();
-    await inst.send({ image: video });
+    // Fail-stop: once the module is dead, sending another frame only produces
+    // another exception, and this runs 60 times a second.
+    if (this.closed || this.failure) return;
+    let inst: HandsInstance;
+    try {
+      inst = await this.ensure();
+    } catch (err) {
+      this.fail(
+        `Sign recognition could not start: ${err instanceof Error ? err.message : String(err)}. ` +
+          'The camera image is unaffected.',
+      );
+      return;
+    }
+    if (this.closed || this.failure) return;
+    // One frame at a time: the WASM graph cannot process two concurrently.
+    if (this.inFlight) return;
+    this.inFlight = true;
+    try {
+      await inst.send({ image: video });
+    } catch (err) {
+      this.fail(
+        `Sign recognition stopped: ${err instanceof Error ? err.message : String(err)}. ` +
+          'Speech translation and captions keep working.',
+      );
+    } finally {
+      this.inFlight = false;
+    }
   }
 
   private handleResults(results: Results): void {
@@ -75,7 +158,18 @@ export class MediaPipeHandTracker implements HandTracker {
   }
 
   async close(): Promise<void> {
-    await this.hands?.close();
+    this.closed = true;
+    const pending = this.init;
+    const inst = this.hands;
+    this.init = null;
     this.hands = null;
+    try {
+      // Await an in-flight start first: closing a solution while its WASM is
+      // still loading is another way to end up with two live modules.
+      const created = pending ? await pending : inst;
+      await created?.close();
+    } catch {
+      // A module that already aborted cannot be closed; nothing left to do.
+    }
   }
 }

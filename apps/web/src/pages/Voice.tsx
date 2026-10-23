@@ -35,10 +35,10 @@ function orDash(value: number | null, suffix = ''): string {
 }
 
 /**
- * Phase 3B text-to-speech surface (plan §17). Everything here is user-initiated —
- * the engine NEVER autoplays. The only verified provider in this browser is
- * `SpeechSynthesis`, so voice gender/age and emotional rendering are reported as
- * *not available from the provider* rather than offered as real controls (§29).
+ * Text-to-speech surface. Everything here is user-initiated — the engine NEVER
+ * autoplays. Voice gender/age and emotional rendering are reported as *not
+ * available from the provider* rather than offered as real controls, and the
+ * engine badge always describes the provider that is actually producing audio.
  */
 export function Voice() {
   const tts = useTts();
@@ -70,10 +70,12 @@ export function Voice() {
         <h1 className="text-3xl font-bold text-clay-ink">Voice / Read-aloud</h1>
         <div className="flex flex-wrap items-center gap-3">
           <StatusIndicator tone={meta.tone} label={meta.label} />
-          {tts.isFallback ? (
-            <Badge tone="warning">Fallback: Browser SpeechSynthesis</Badge>
-          ) : tts.providerName === 'indic-tts' ? (
+          {tts.engineStatus === 'pending' ? (
+            <Badge tone="neutral">Speech engine: checking…</Badge>
+          ) : tts.engineStatus === 'server' ? (
             <Badge tone="success">Engine: AI4Bharat Indic-TTS (Neural FastPitch + HiFi-GAN)</Badge>
+          ) : tts.isFallback ? (
+            <Badge tone="warning">Fallback: Browser SpeechSynthesis</Badge>
           ) : (
             <Badge tone="info">Browser SpeechSynthesis — on-device</Badge>
           )}
@@ -81,6 +83,11 @@ export function Voice() {
           {!caps.emotionalRendering && <Badge tone="warning">Emotional prosody: not rendered by this provider</Badge>}
         </div>
 
+        {tts.engineReason && (
+          <p className="text-xs text-clay-muted" role="status">
+            {tts.engineReason}
+          </p>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
@@ -160,7 +167,7 @@ export function Voice() {
             </select>
             <p className="text-xs text-clay-muted">
               {tts.enInAvailable
-                ? 'An Indian-English (en-IN) voice is installed and preferred.'
+                ? 'An Indian-English (en-IN) voice is installed on this device.'
                 : 'No en-IN voice is installed here; the best available voice is used. We do not claim an Indian-English accent we cannot play.'}
             </p>
           </div>
@@ -319,10 +326,11 @@ export function Voice() {
       <Card className="flex flex-col gap-2">
         <h2 className="text-lg font-semibold text-clay-ink">About this feature</h2>
         <p className="text-sm text-clay-muted">
-          Speech is synthesized and played entirely by your browser — the text never leaves your device, and nothing is
-          read aloud unless you press a control. Voice gender/age and emotion are shown as unavailable when the provider
-          cannot report or render them, rather than being guessed. A future server-based Indian-TTS provider can drop
-          into the same seam without changing this screen.
+          {tts.engineStatus === 'server'
+            ? 'Speech is synthesized by the Indic-TTS service on our server and streamed back for playback. '
+            : 'Speech is synthesized and played entirely by your browser — the text never leaves your device. '}
+          Nothing is read aloud unless you press a control. Voice gender/age and emotion are shown as unavailable
+          when the provider cannot report or render them, rather than being guessed.
         </p>
         <div>
           <Link to="/app/dashboard" className="text-sm font-medium text-clay-primary hover:underline">

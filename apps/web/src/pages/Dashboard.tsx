@@ -51,7 +51,7 @@ const TOOL_CARDS: ActionCard[] = [
   },
   {
     title: '3D avatar',
-    body: 'Avatar animation foundation (development placeholder).',
+    body: 'GLB signing avatar: authentic ISL word keyframes, fingerspelling and a folded-arm signing stance.',
     to: '/app/avatar',
     cta: 'Open avatar',
     icon: 'avatar',
@@ -103,7 +103,7 @@ function ActionGrid({ cards, columns }: { cards: ActionCard[]; columns: string }
   );
 }
 
-/** Authenticated home. Real-time features are honestly gated to later phases. */
+/** Authenticated home: every tool below runs in this build. */
 export function Dashboard() {
   const user = useAppSelector((s) => s.auth.user);
 
@@ -115,7 +115,7 @@ export function Dashboard() {
           {user ? `Welcome, ${user.displayName}` : 'Welcome'}
         </h1>
         <div className="flex flex-wrap items-center gap-3">
-          <StatusIndicator tone="success" label="Live calling is available (Phase 2A)" />
+          <StatusIndicator tone="success" label="Live calling is available" />
           <span className="rounded-pill border-2 border-clay-edge/60 px-3 py-0.5 text-xs font-bold text-clay-muted">
             Press <kbd className="font-mono">Tab</kbd> to navigate by keyboard
           </span>

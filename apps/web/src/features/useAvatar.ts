@@ -25,6 +25,12 @@ export type AvatarPhase = 'idle' | 'initializing' | 'ready' | 'unsupported' | 'e
 export interface UseAvatarOptions extends BabylonAdapterOptions {
   /** Poll interval (ms) for reading the live FPS sample into React state. */
   perfIntervalMs?: number;
+  /**
+   * Whether the canvas is currently in the DOM. Pages that mount the avatar panel
+   * on demand (the in-call interpreter) must pass their toggle here, otherwise the
+   * engine would try to initialise against a null canvas and never retry.
+   */
+  enabled?: boolean;
 }
 
 export interface AvatarApi {
@@ -55,7 +61,7 @@ const EMPTY_QUEUE: AvatarQueueSnapshot = { state: 'idle', current: null, queued:
 const EMPTY_PERF: PerfSnapshot = { fps: null, instantaneousFps: null, samples: 0 };
 
 export function useAvatar(options: UseAvatarOptions = {}): AvatarApi {
-  const { perfIntervalMs = 500, ...adapterOptions } = options;
+  const { perfIntervalMs = 500, enabled = true, ...adapterOptions } = options;
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const controllerRef = useRef<AvatarController | null>(null);
 
@@ -74,6 +80,7 @@ export function useAvatar(options: UseAvatarOptions = {}): AvatarApi {
   }, [adapterOptions]);
 
   useEffect(() => {
+    if (!enabled) return;
     let disposed = false;
     let interval: ReturnType<typeof setInterval> | null = null;
 
@@ -108,7 +115,19 @@ export function useAvatar(options: UseAvatarOptions = {}): AvatarApi {
         setQueue(controller.queueSnapshot());
         setPhase('ready');
 
-        interval = setInterval(() => setPerf(controller.perfSnapshot()), perfIntervalMs);
+        // Poll the measured FPS, and re-read the queue alongside it so the panel
+        // cannot drift if a state callback is ever coalesced away by React.
+        interval = setInterval(() => {
+          setPerf(controller.perfSnapshot());
+          const snap = controller.queueSnapshot();
+          setQueue((prev) =>
+            prev.state === snap.state &&
+            prev.length === snap.length &&
+            prev.current?.animationClipId === snap.current?.animationClipId
+              ? prev
+              : snap,
+          );
+        }, perfIntervalMs);
       } catch (err) {
         if (disposed) return;
         setPhase('error');
@@ -122,9 +141,10 @@ export function useAvatar(options: UseAvatarOptions = {}): AvatarApi {
       controllerRef.current?.dispose();
       controllerRef.current = null;
     };
-    // Init runs once per mount: the canvas ref is fixed and options are read via
-    // optionsRef, so nothing in the effect body needs to retrigger this setup.
-  }, []);
+    // Initialises once per mount of the canvas. Options are read through
+    // optionsRef, so `enabled` is the only value that can legitimately remount
+    // the engine (a lazily rendered panel appears after the first render).
+  }, [enabled, perfIntervalMs]);
 
   const requireController = useCallback((): AvatarController | null => controllerRef.current, []);
 

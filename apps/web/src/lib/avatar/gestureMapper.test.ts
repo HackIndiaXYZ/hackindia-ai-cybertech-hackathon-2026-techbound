@@ -55,14 +55,30 @@ describe('GestureMapper (§6 mapping, §8 honesty)', () => {
     expect(m.toCommand('real-hello').isPlaceholder).toBe(false);
   });
 
-  it('derives commands from a Phase 3A concept, preserving its expression/timing and reporting unknown gestures', () => {
+  it('spells a known gesture that has no keyframes, and still reports unknown ids', () => {
     const { commands, unrecognized } = mapper.fromConcept(makeConcept());
-    expect(commands).toHaveLength(2);
+    // 'wave' is registered but has no ISL keyframe behind it, so "hello" is signed
+    // with real A–Z handshapes instead of waved at with a generic pose.
+    expect(commands.slice(0, 5).map((c) => c.gestureId)).toEqual([
+      'fingerspell-h',
+      'fingerspell-e',
+      'fingerspell-l',
+      'fingerspell-l',
+      'fingerspell-o',
+    ]);
+    expect(commands.slice(0, 5).every((c) => c.isPlaceholder === false)).toBe(true);
     expect(commands[0].facialExpression).toBe('affirmative');
-    expect(commands[0].durationMs).toBe(500);
+    expect(commands[0].durationMs).toBeGreaterThanOrEqual(350);
+    // The unknown id is still surfaced and still stays a labelled placeholder.
     expect(unrecognized).toEqual(['nonexistent-sign']);
-    // Even for the unknown id it stays a labelled placeholder, never a fake sign.
-    expect(commands.every((c) => c.isPlaceholder)).toBe(true);
+    expect(commands[commands.length - 1].animationClipId).toBe('reset');
+    expect(commands[commands.length - 1].isPlaceholder).toBe(true);
+  });
+
+  it('keeps a concept whose gestures are authentic word signs on those gestures', () => {
+    const { commands } = mapper.fromConcept(makeConcept({ gestureIds: ['sign-thank'], sourceText: 'thank you' }));
+    expect(commands.map((c) => c.animationClipId)).toEqual(['sign-thank']);
+    expect(commands[0].isPlaceholder).toBe(false);
   });
 
   it('falls back to ISL fingerspelling letter-by-letter for unrecognized words (Phase 5)', () => {
@@ -98,17 +114,24 @@ describe('GestureMapper (§6 mapping, §8 honesty)', () => {
     expect(commands.every((c) => c.isPlaceholder === false)).toBe(true);
   });
 
-  it('maps Phase 5 dynamic ISL signs (school, doctor, city, etc.) with realClip: true', () => {
-    const schoolCmd = mapper.toCommand('sign-school');
-    expect(schoolCmd.animationClipId).toBe('sign-school');
-    expect(schoolCmd.isPlaceholder).toBe(false);
+  it('flags a sign gesture as a placeholder when no keyframes exist for it', () => {
+    // school / doctor / city are in the glossary and have dev poses, but the sign
+    // registry holds no keyframes for them. The emitted flag is derived from the
+    // data, so these can no longer pose as authentic ISL (§10, Rule #14).
+    for (const id of ['sign-school', 'sign-doctor', 'sign-city']) {
+      const cmd = mapper.toCommand(id);
+      expect(cmd.animationClipId).toBe(id);
+      expect(cmd.isPlaceholder).toBe(true);
+    }
+  });
 
-    const doctorCmd = mapper.toCommand('sign-doctor');
-    expect(doctorCmd.animationClipId).toBe('sign-doctor');
-    expect(doctorCmd.isPlaceholder).toBe(false);
-
-    const cityCmd = mapper.toCommand('sign-city');
-    expect(cityCmd.animationClipId).toBe('sign-city');
-    expect(cityCmd.isPlaceholder).toBe(false);
+  it('emits non-placeholder commands for gestures that have real keyframes', () => {
+    // Fingerspelling handshapes plus the word signs merged from the registry and
+    // the MIT-licensed Sign Kit extraction.
+    for (const id of ['sign-thank', 'sign-how-are-you', 'sign-self', 'sign-hello', 'sign-good-morning', 'sign-a']) {
+      const cmd = mapper.toCommand(id);
+      expect(cmd.animationClipId).toBe(id);
+      expect(cmd.isPlaceholder, `${id} has keyframes and must not be flagged`).toBe(false);
+    }
   });
 });
