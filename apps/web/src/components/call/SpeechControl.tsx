@@ -53,10 +53,10 @@ export function SpeechControl({ speech, largeControls }: SpeechControlProps) {
             value={language}
             onChange={(e) => speech.setLanguage(e.target.value as typeof language)}
             disabled={status === 'requesting'}
-            className="h-11 rounded-clay bg-clay-soft px-3 text-clay-ink shadow-clay-inset outline-none focus:shadow-clay-focus"
+            className="h-11 rounded-clay bg-clay-soft px-3 text-clay-ink shadow-clay-inset outline-none focus:shadow-clay-focus cursor-pointer"
           >
             {LANGUAGE_OPTIONS.map((opt) => (
-              <option key={opt.code} value={opt.code}>
+              <option key={opt.code} value={opt.code} className="bg-clay-surface text-clay-ink">
                 {opt.label}
               </option>
             ))}

@@ -117,10 +117,10 @@ export function Signup() {
               name="role"
               value={role}
               onChange={(e) => setRole(e.target.value as UserRole)}
-              className="h-12 rounded-clay border-2 border-clay-edge/70 bg-clay-soft px-3 text-clay-ink outline-none focus:border-clay-primary"
+              className="h-12 rounded-clay border-2 border-clay-edge/70 bg-clay-soft px-3 text-clay-ink outline-none focus:border-clay-primary cursor-pointer"
             >
               {roles.map((r) => (
-                <option key={r.value} value={r.value}>
+                <option key={r.value} value={r.value} className="bg-clay-surface text-clay-ink">
                   {r.label}
                 </option>
               ))}

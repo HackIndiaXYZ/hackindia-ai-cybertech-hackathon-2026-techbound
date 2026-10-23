@@ -169,6 +169,37 @@ html[data-contrast='high'] {
     scrollbar-color: rgb(var(--clay-edge)) transparent;
     scrollbar-width: thin;
   }
+
+  /* Form controls & Dropdown menus: Ensure select options have matching theme surface background and visible text */
+  select {
+    color-scheme: inherit;
+  }
+
+  [data-theme='night'] select,
+  [data-theme='yellow-max'] select,
+  html[data-contrast='high'] select {
+    color-scheme: dark;
+  }
+
+  [data-theme='daylight'] select,
+  [data-theme='sepia'] select {
+    color-scheme: light;
+  }
+
+  select option,
+  select optgroup,
+  option,
+  optgroup {
+    background-color: rgb(var(--clay-surface));
+    color: rgb(var(--clay-ink));
+  }
+
+  select option:checked,
+  option:checked {
+    background-color: rgb(var(--clay-soft));
+    color: rgb(var(--clay-primary));
+    font-weight: 700;
+  }
 }
 
 @layer components {
