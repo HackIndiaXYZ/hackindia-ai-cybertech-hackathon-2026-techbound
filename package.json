@@ -1,0 +1,55 @@
+{
+  "name": "isl-communication-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ISL Real-Time Communication Platform — bidirectional Indian Sign Language <-> speech communication",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound.git"
+  },
+  "homepage": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound#readme",
+  "bugs": {
+    "url": "https://github.com/HackIndiaXYZ/hackindia-ai-cybertech-hackathon-2026-techbound/issues"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "prepare": "npm run build --workspace @isl/shared-types",
+    "dev": "node scripts/dev.mjs",
+    "dev:api": "npm run dev --workspace @isl/api",
+    "dev:web": "npm run dev --workspace @isl/web",
+    "dev:isl": "node scripts/start-isl.mjs",
+    "dev:all": "node scripts/dev.mjs --all",
+    "build": "npm run build --workspace @isl/shared-types && npm run build --workspaces --if-present",
+    "build:vercel": "node scripts/build_vercel_output.mjs",
+    "deploy:hf-space": "python scripts/deploy_hf_space.py",
+    "lint": "npm run lint --workspaces --if-present",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\"",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "test:e2e": "npm run test:e2e --workspace @isl/web",
+    "test:integration": "npm run test:integration --workspace @isl/api",
+    "bundle-budget": "node scripts/check-bundle-budget.mjs",
+    "migrate": "npm run migrate --workspace @isl/api",
+    "verify:ice": "npm run verify:ice --workspace @isl/api",
+    "clean": "rimraf \"apps/**/dist\" \"packages/**/dist\" \"apps/**/node_modules/.vite\""
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@types/node": "^22.10.2",
+    "esbuild": "^0.25.0",
+    "eslint": "^9.17.0",
+    "prettier": "^3.4.2",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.18.0",
+    "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
