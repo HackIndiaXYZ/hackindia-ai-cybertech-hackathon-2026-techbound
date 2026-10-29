@@ -1,0 +1,24 @@
+# Keeps host state out of the build context/image. Two hard guarantees matter
+# here: (1) secrets (.env) are NEVER baked into an image, and (2) host
+# node_modules/dist are not copied in, because each stage runs `npm ci` + build
+# from the lockfile and must not inherit another platform's binaries.
+**/node_modules
+**/dist
+**/.next
+**/coverage
+
+# Environment / secrets — configure via runtime env, never the image layer.
+.env
+.env.*
+!.env.example
+
+# VCS / tooling / local artifacts
+.git
+.gitignore
+.github
+*.log
+.DS_Store
+**/*.tsbuildinfo
+.vscode
+.idea
+Spirit-*.md

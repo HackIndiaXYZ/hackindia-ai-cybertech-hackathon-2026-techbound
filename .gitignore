@@ -1,0 +1,84 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+.vercel/
+
+# Test / coverage
+coverage/
+.nyc_output/
+
+# Env / secrets (never commit real secrets)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Caches
+.cache/
+.vite/
+.eslintcache
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local dev fallback data store (sqlite / in-memory persistence)
+*.sqlite
+*.sqlite3
+data/local/
+
+# MediaPipe Hands runtime assets (WASM + models) copied from node_modules by
+# scripts/copy-mediapipe-assets.js — reproduced on predev/prebuild, not committed.
+apps/web/public/mediapipe/
+
+# Playwright E2E artifacts (generated reports/traces, never committed)
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+apps/web/test-results/
+apps/web/playwright-report/
+
+# Python virtual environment & runtime artifacts
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+debug_uploads/
+npy_files/
+**/checkpoint_epoch_*.pth
+
+# Ad-hoc verification artifacts. Manual browser checks drop screenshots and
+# scratch scripts at the repo root; those must never be committed (the avatar /
+# vision assets that DO belong live under apps/web/public/).
+/*.png
+/*.jpg
+/*.jpeg
+/*.webp
+/*.b64
+*.tmp.*
+.vercel
+.env*
+
+# Deployment scratch output written next to the scripts that produce it (Space
+# build/run logs, smoke-test dumps). `*.log` above does not match a dotfile name.
+.hf_*.log
+.hf_err.txt
+.prod_smoke.log
+.space_hf.log
