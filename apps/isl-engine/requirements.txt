@@ -1,0 +1,58 @@
+# =============================================================================
+# ISL ML Engine runtime dependencies.
+#
+# HF ZeroGPU build contract: on a `sdk: gradio` Space, Hugging Face's install
+# layer itself runs
+#   pip install -r requirements.txt gradio[oauth,mcp]==<hub default> torch<=<hub cap> uvicorn websockets spaces
+# so NEVER add `gradio` here and never upper-bound `torch`: a second, narrower
+# constraint makes the whole install unresolvable (ResolutionImpossible ->
+# BUILD_ERROR). `gradio`, `uvicorn`, `websockets` and `spaces` (the ZeroGPU
+# runtime) are all provided by that layer; app.py detects `spaces` at import
+# time and falls back to plain CPU execution when it is absent (local dev).
+# =============================================================================
+
+# --- Web / API layer (serves the Gradio UI and the REST + WebSocket endpoints) ---
+fastapi>=0.115.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# --- Inference runtime ---
+numpy>=1.24.0
+scipy
+torch>=2.0.0
+torchvision>=0.15.0
+opencv-python-headless>=4.8.0
+# Kept >=0.10.14 because that is the first series publishing cp312 wheels (the Space
+# image is Python 3.12), but note that those builds no longer expose the legacy
+# `mp.solutions` API. That only disables raw-video preprocessing inside
+# inference_hierarchical.py, which now treats it as optional: the live path is
+# browser-side MediaPipe Tasks → POST /predict/landmarks → the hierarchical
+# classifier, which needs no mediapipe at all. preprocessing.py/infer.py (offline
+# dataset conversion) still assume the legacy API.
+mediapipe>=0.10.14
+timm>=0.9.0
+einops>=0.6.1
+scikit-learn>=1.3.0
+joblib
+matplotlib>=3.7.0
+psutil
+tqdm>=4.65.0
+requests
+python-dotenv
+
+# --- Deliberately NOT installed here ---
+# tensorflow: importing it in the same process as CUDA-built torch makes the Space
+# segfault (container exit code 139) during native-library initialisation, in either
+# import order — reproduced twice on ZeroGPU. Local/venv installs are unaffected, so
+# `from tensorflow import keras` in app.py simply resolves to None in the Space and
+# /predict/static is served by the RandomForest model below (isl_rf_model.pkl).
+# Re-add it only if you also drop torch, or run the two models in separate processes.
+# isl_static_model.h5 stays in the repo for local development and retraining.
+#
+# tensorboard, seaborn and transformers appear only in the offline training /
+# evaluation scripts (configs.config's TENSORBOARD flag, create_model2.py,
+# evaluate_phase2.py) and are never imported on the request path.
+# google-generativeai powers the OPTIONAL Gemini rewrite in sentence_model.py,
+# which is skipped unless GEMINI_API_KEY is set; add it back above if you
+# provision that key for this Space. Rule-based ISL grammar formatting
+# (grammar_engine.py) is pure stdlib and needs none of the above.
