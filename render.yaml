@@ -1,0 +1,58 @@
+services:
+  # ---------------------------------------------------------------------------
+  # 1. API & WebRTC Signaling Backend Service
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: isl-backend-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build --workspace @isl/shared-types && npm run build --workspace @isl/api
+    startCommand: node apps/api/dist/index.js
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DB_DRIVER
+        value: postgres
+      - key: REDIS_DRIVER
+        value: fallback
+      - key: ALLOW_FALLBACK_REDIS
+        value: "true"
+      # Neon PostgreSQL connection string from https://console.neon.tech
+      # Format: postgresql://neondb_owner:secret@ep-xyz.us-east-2.aws.neon.tech/neondb?sslmode=require
+      - key: DATABASE_URL
+        sync: false
+      - key: API_AUTH_JWT_SECRET
+        generateValue: true
+      # Supabase project URL (https://<ref>.supabase.co). The API verifies Google sign-in
+      # tokens against this project's JWKS. Leave unset to disable OAuth: the web app then
+      # hides the Google button and serves credential login only. Never set OAUTH_DEV_MODE
+      # here — production refuses to boot with it (see apps/api/src/config/index.ts).
+      - key: SUPABASE_ISSUER_URL
+        sync: false
+      # Your deployed Vercel frontend URL, e.g. https://your-app.vercel.app
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: PUBLIC_WEB_BASE_URL
+        sync: false
+      # Optional: Deployed ML Engine URL on Render, e.g. https://isl-ml-engine.onrender.com
+      - key: ISL_ENGINE_BASE_URL
+        sync: false
+
+  # ---------------------------------------------------------------------------
+  # 2. Python ISL ML Engine Service (Docker)
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: isl-ml-engine
+    runtime: docker
+    dockerfilePath: apps/isl-engine/Dockerfile
+    dockerContext: apps/isl-engine
+    plan: free
+    region: oregon
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "5001"
+      - key: PYTHONUNBUFFERED
+        value: "1"
