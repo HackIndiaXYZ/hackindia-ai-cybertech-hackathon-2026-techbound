@@ -1,0 +1,114 @@
+[
+  {
+    "gloss": "I School Monday",
+    "formed_sentence": "I go to school on Monday.",
+    "hindi_translation": "मैं सोमवार को स्कूल जाता हूँ।",
+    "direct_latency_us": 115.8,
+    "http_latency_ms": 470.3,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Father Hospital",
+    "formed_sentence": "Father goes to the hospital.",
+    "hindi_translation": "पिता अस्पताल जाते हैं.",
+    "direct_latency_us": 31.3,
+    "http_latency_ms": 413.6,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Doctor Hospital",
+    "formed_sentence": "The doctor is at the hospital.",
+    "hindi_translation": "डॉक्टर अस्पताल में हैं.",
+    "direct_latency_us": 65.1,
+    "http_latency_ms": 967.4,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Dog Park",
+    "formed_sentence": "The dog is in the park.",
+    "hindi_translation": "कुत्ता पार्क में है.",
+    "direct_latency_us": 29.6,
+    "http_latency_ms": 779.6,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "He Black Shirt",
+    "formed_sentence": "He is wearing a black shirt.",
+    "hindi_translation": "उन्होंने काली शर्ट पहनी हुई है.",
+    "direct_latency_us": 38.6,
+    "http_latency_ms": 417.4,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Girl Yellow Dress",
+    "formed_sentence": "The girl is wearing a yellow dress.",
+    "hindi_translation": "लड़की ने पीले रंग की पोशाक पहनी हुई है.",
+    "direct_latency_us": 29.3,
+    "http_latency_ms": 1399.7,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Doctor Child Happy",
+    "formed_sentence": "The doctor and the child are happy.",
+    "hindi_translation": "डॉक्टर और बच्चा खुश हैं.",
+    "direct_latency_us": 38.1,
+    "http_latency_ms": 888.3,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Market City",
+    "formed_sentence": "The Market is in the city.",
+    "hindi_translation": "बाज़ार शहर में है.",
+    "direct_latency_us": 24.2,
+    "http_latency_ms": 1062.8,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Thank You",
+    "formed_sentence": "Thank you.",
+    "hindi_translation": "धन्यवाद।",
+    "direct_latency_us": 40.6,
+    "http_latency_ms": 455.3,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "H E L L O",
+    "formed_sentence": "Hello.",
+    "hindi_translation": "नमस्ते।",
+    "direct_latency_us": 24.2,
+    "http_latency_ms": 412.2,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "How_Are_You_",
+    "formed_sentence": "How are you?",
+    "hindi_translation": "आप कैसे हैं?",
+    "direct_latency_us": 11.5,
+    "http_latency_ms": 421.7,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Hospital",
+    "formed_sentence": "Hospital.",
+    "hindi_translation": "अस्पताल।",
+    "direct_latency_us": 13.3,
+    "http_latency_ms": 418.9,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "Happy",
+    "formed_sentence": "Happy.",
+    "hindi_translation": "खुश।",
+    "direct_latency_us": 15.4,
+    "http_latency_ms": 410.4,
+    "is_rule_based": true
+  },
+  {
+    "gloss": "I Thank You",
+    "formed_sentence": "I thank you.",
+    "hindi_translation": "मैं आपका धन्यवाद करता हूं।",
+    "direct_latency_us": 24.5,
+    "http_latency_ms": 414.0,
+    "is_rule_based": true
+  }
+]
