@@ -1,0 +1,322 @@
+{
+  "timestamp": "2026-10-22T10:06:54Z",
+  "total_phrases": 25,
+  "total_passes": 25,
+  "overall_accuracy_pct": 100.0,
+  "direction_1": {
+    "passed": 12,
+    "total": 12,
+    "accuracy_pct": 100.0,
+    "mean_latency_ms": 1312.4,
+    "results": [
+      {
+        "id": "D1-01",
+        "input": "NAMASTE",
+        "status": "PASS",
+        "latency_ms": 1485.0,
+        "details": "Formed: 'Namaste.' -> TTS Audio: 54188 bytes",
+        "audio_bytes": 54188
+      },
+      {
+        "id": "D1-02",
+        "input": "THANK YOU",
+        "status": "PASS",
+        "latency_ms": 1127.7,
+        "details": "Formed: 'Thank you.' -> TTS Audio: 55340 bytes",
+        "audio_bytes": 55340
+      },
+      {
+        "id": "D1-03",
+        "input": "HELP",
+        "status": "PASS",
+        "latency_ms": 1263.5,
+        "details": "Formed: 'Help.' -> TTS Audio: 40364 bytes",
+        "audio_bytes": 40364
+      },
+      {
+        "id": "D1-04",
+        "input": "HOSPITAL",
+        "status": "PASS",
+        "latency_ms": 1302.9,
+        "details": "Formed: 'Hospital.' -> TTS Audio: 56492 bytes",
+        "audio_bytes": 56492
+      },
+      {
+        "id": "D1-05",
+        "input": "DOCTOR",
+        "status": "PASS",
+        "latency_ms": 1322.9,
+        "details": "Formed: 'Doctor.' -> TTS Audio: 47276 bytes",
+        "audio_bytes": 47276
+      },
+      {
+        "id": "D1-06",
+        "input": "SCHOOL",
+        "status": "PASS",
+        "latency_ms": 1436.6,
+        "details": "Formed: 'School.' -> TTS Audio: 46124 bytes",
+        "audio_bytes": 46124
+      },
+      {
+        "id": "D1-07",
+        "input": "FOOD",
+        "status": "PASS",
+        "latency_ms": 1432.4,
+        "details": "Formed: 'Food.' -> TTS Audio: 43820 bytes",
+        "audio_bytes": 43820
+      },
+      {
+        "id": "D1-08",
+        "input": "WATER",
+        "status": "PASS",
+        "latency_ms": 1329.0,
+        "details": "Formed: 'Water.' -> TTS Audio: 43820 bytes",
+        "audio_bytes": 43820
+      },
+      {
+        "id": "D1-09",
+        "input": "WHERE",
+        "status": "PASS",
+        "latency_ms": 1331.1,
+        "details": "Formed: 'Where.' -> TTS Audio: 41516 bytes",
+        "audio_bytes": 41516
+      },
+      {
+        "id": "D1-10",
+        "input": "HOW ARE YOU",
+        "status": "PASS",
+        "latency_ms": 1227.7,
+        "details": "Formed: 'How are you.' -> TTS Audio: 57644 bytes",
+        "audio_bytes": 57644
+      },
+      {
+        "id": "D1-11",
+        "input": "I SCHOOL GO",
+        "status": "PASS",
+        "latency_ms": 1333.2,
+        "details": "Formed: 'I go to school.' -> TTS Audio: 73772 bytes",
+        "audio_bytes": 73772
+      },
+      {
+        "id": "D1-12",
+        "input": "MONDAY NIGHT MARKET",
+        "status": "PASS",
+        "latency_ms": 1156.8,
+        "details": "Formed: 'Monday night market.' -> TTS Audio: 84140 bytes",
+        "audio_bytes": 84140
+      }
+    ]
+  },
+  "direction_2": {
+    "passed": 13,
+    "total": 13,
+    "accuracy_pct": 100.0,
+    "mean_latency_ms": 0.56,
+    "results": [
+      {
+        "id": "D2-01",
+        "input": "Hello, how are you",
+        "type": "conversational",
+        "concepts": [
+          "greet",
+          "how-are-you"
+        ],
+        "realClipCount": 2,
+        "fingerspellCount": 0,
+        "totalCommands": 2,
+        "latencyMs": 4.4,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-02",
+        "input": "I am going to school",
+        "type": "sov-grammar",
+        "concepts": [
+          "self",
+          "school",
+          "be",
+          "go"
+        ],
+        "realClipCount": 4,
+        "fingerspellCount": 0,
+        "totalCommands": 4,
+        "latencyMs": 0.5,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-03",
+        "input": "Where is the hospital",
+        "type": "wh-question",
+        "concepts": [
+          "unknown",
+          "hospital",
+          "be",
+          "where"
+        ],
+        "realClipCount": 3,
+        "fingerspellCount": 3,
+        "totalCommands": 6,
+        "latencyMs": 0.7,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-04",
+        "input": "Thank you very much",
+        "type": "conversational",
+        "concepts": [
+          "thank",
+          "unknown",
+          "unknown"
+        ],
+        "realClipCount": 1,
+        "fingerspellCount": 8,
+        "totalCommands": 9,
+        "latencyMs": 0.5,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-05",
+        "input": "Please help me",
+        "type": "urgent",
+        "concepts": [
+          "please",
+          "self",
+          "help"
+        ],
+        "realClipCount": 3,
+        "fingerspellCount": 0,
+        "totalCommands": 3,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-06",
+        "input": "What is your name",
+        "type": "wh-question",
+        "concepts": [
+          "you",
+          "name",
+          "be",
+          "what"
+        ],
+        "realClipCount": 4,
+        "fingerspellCount": 0,
+        "totalCommands": 4,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-07",
+        "input": "I do not know",
+        "type": "negation",
+        "concepts": [
+          "self",
+          "know",
+          "no"
+        ],
+        "realClipCount": 3,
+        "fingerspellCount": 0,
+        "totalCommands": 3,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-08",
+        "input": "I need water and food",
+        "type": "basic-need",
+        "concepts": [
+          "self",
+          "water",
+          "food",
+          "and",
+          "want"
+        ],
+        "realClipCount": 5,
+        "fingerspellCount": 0,
+        "totalCommands": 5,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-09",
+        "input": "My father and mother are home",
+        "type": "family-location",
+        "concepts": [
+          "self",
+          "father",
+          "mother",
+          "home",
+          "and",
+          "be"
+        ],
+        "realClipCount": 6,
+        "fingerspellCount": 0,
+        "totalCommands": 6,
+        "latencyMs": 0.3,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-10",
+        "input": "Good morning friend",
+        "type": "greeting",
+        "concepts": [
+          "unknown",
+          "friend",
+          "good"
+        ],
+        "realClipCount": 2,
+        "fingerspellCount": 7,
+        "totalCommands": 9,
+        "latencyMs": 0.2,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-11",
+        "input": "He is happy today",
+        "type": "emotion",
+        "concepts": [
+          "today",
+          "unknown",
+          "happy",
+          "be"
+        ],
+        "realClipCount": 3,
+        "fingerspellCount": 2,
+        "totalCommands": 5,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-12",
+        "input": "The dog is black",
+        "type": "descriptor",
+        "concepts": [
+          "unknown",
+          "dog",
+          "black",
+          "be"
+        ],
+        "realClipCount": 3,
+        "fingerspellCount": 3,
+        "totalCommands": 6,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      },
+      {
+        "id": "D2-13",
+        "input": "Techbound Hackathon 2026",
+        "type": "out-of-vocabulary-fingerspell",
+        "concepts": [
+          "unknown",
+          "unknown",
+          "unknown"
+        ],
+        "realClipCount": 1,
+        "fingerspellCount": 18,
+        "totalCommands": 19,
+        "latencyMs": 0.1,
+        "status": "PASS"
+      }
+    ]
+  }
+}
